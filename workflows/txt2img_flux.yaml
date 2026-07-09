@@ -1,0 +1,39 @@
+name: txt2img_flux
+title: "Text → Image (FLUX.1-dev)"
+kind: image
+description: "High-quality text-to-image with FLUX.1-dev (fp8). Sharper text, better prompt-following than SDXL."
+template: templates/txt2img_flux.api.json
+ui_template: templates/txt2img_flux.ui.json
+client_outputs: ["9"]
+
+inject:
+  positive_prompt:
+    api: ["6", "inputs", "text"]
+    type: string
+    required: true
+    description: "What the image should depict. FLUX follows detailed natural-language prompts well."
+  guidance:
+    api: ["26", "inputs", "guidance"]
+    type: float
+    default: 3.5
+    min: 0.0
+    max: 10.0
+    description: "FLUX guidance strength (FluxGuidance). ~3.5 is a good default."
+  seed:
+    api: ["3", "inputs", "seed"]
+    type: seed
+    default: -1
+  steps:
+    api: ["3", "inputs", "steps"]
+    type: int
+    default: 20
+    min: 1
+    max: 50
+  width:
+    api: ["5", "inputs", "width"]
+    type: int
+    default: 1024
+  height:
+    api: ["5", "inputs", "height"]
+    type: int
+    default: 1024

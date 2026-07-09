@@ -1,0 +1,56 @@
+name: img2vid_wan
+title: "Image → Video (Wan 2.2, directed)"
+kind: video
+description: "Animate a START image with a text-directed action (Wan 2.2 i2v). Appearance from the image, motion from the prompt. Used for last-frame chaining into long videos."
+template: templates/img2vid_wan.api.json
+ui_template: templates/img2vid_wan.ui.json
+client_outputs: ["30"]
+learning_png: true
+
+inputs:
+  image:
+    api: ["23", "inputs", "image"]
+    type: image
+
+inject:
+  positive_prompt:
+    api: ["6", "inputs", "text"]
+    type: string
+    required: true
+    description: "The action/motion to perform (the look comes from the start image)."
+  image:
+    api: ["23", "inputs", "image"]
+    type: image
+    required: true
+    description: "Start frame (filename relative to ComfyUI input/). Locks appearance."
+  negative_prompt:
+    api: ["7", "inputs", "text"]
+    type: string
+    default: "low quality, worst quality, blurry, distorted, deformed face, extra limbs, warping"
+  width:
+    api: ["55", "inputs", "width"]
+    type: int
+    default: 1024
+  height:
+    api: ["55", "inputs", "height"]
+    type: int
+    default: 576
+  length:
+    api: ["55", "inputs", "length"]
+    type: int
+    default: 121
+    min: 5
+    max: 121
+    description: "Frames (4n+1). 121 ≈ 5s at 24fps."
+  steps:
+    api: ["3", "inputs", "steps"]
+    type: int
+    default: 30
+  shift:
+    api: ["48", "inputs", "shift"]
+    type: float
+    default: 8.0
+  seed:
+    api: ["3", "inputs", "seed"]
+    type: seed
+    default: -1

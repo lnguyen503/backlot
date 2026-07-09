@@ -1,0 +1,50 @@
+name: talkhost_infinitetalk_multi
+title: "Talking Two-Shot (multi-person audio-driven, InfiniteTalk MULTI)"
+kind: video
+description: >
+  TWO characters speak in ONE frame (InfiniteTalk multi weights). Feed a two-shot still
+  + one full-timeline WAV per speaker (silence while the other talks, 'para' overlay);
+  left/right speaker masks assign the mouths. First built for the LBU dialogue bench A2.
+template: templates/talkhost_infinitetalk_multi.api.json
+client_outputs: ["901"]
+
+inject:
+  image:
+    api: ["284", "inputs", "image"]
+    type: image
+    required: true
+    description: "Two-shot still (filename relative to ComfyUI input/)."
+  audio:
+    api: ["125", "inputs", "audio"]
+    type: audio
+    required: true
+    description: "Speaker 1 (LEFT) full-timeline WAV."
+  audio2:
+    api: ["126", "inputs", "audio"]
+    type: audio
+    required: true
+    description: "Speaker 2 (RIGHT) full-timeline WAV."
+  width:
+    api: ["245", "inputs", "value"]
+    type: int
+    default: 832
+  height:
+    api: ["246", "inputs", "value"]
+    type: int
+    default: 480
+  prompt:
+    api: ["241", "inputs", "positive_prompt"]
+    type: string
+    default: "two people in warm conversation, natural expressive faces, photorealistic"
+  steps:
+    api: ["128", "inputs", "steps"]
+    type: int
+    default: 6
+  max_frames:
+    api: ["270", "inputs", "value"]
+    type: int
+    default: 1200
+  seed:
+    api: ["128", "inputs", "seed"]
+    type: seed
+    default: -1

@@ -1,0 +1,47 @@
+name: img2vid_wan14b_fast
+title: "Image → Video (Wan 2.2 14B, Lightning 4-step)"
+kind: video
+description: "Wan 2.2 I2V A14B with the lightx2v 4-step Lightning LoRAs: ~5x faster than full 14B (4 steps, cfg 1) at near-equal quality. Same two-expert MoE, portrait by default. Use this for iteration; the plain img2vid_wan14b for max quality."
+template: templates/img2vid_wan14b_fast.api.json
+client_outputs: ["30"]
+learning_png: true
+
+inputs:
+  image:
+    api: ["23", "inputs", "image"]
+    type: image
+
+inject:
+  positive_prompt:
+    api: ["6", "inputs", "text"]
+    type: string
+    required: true
+    description: "The action/motion to perform (the look comes from the start image)."
+  image:
+    api: ["23", "inputs", "image"]
+    type: image
+    required: true
+    description: "Start frame (filename relative to ComfyUI input/). Locks appearance."
+  negative_prompt:
+    api: ["7", "inputs", "text"]
+    type: string
+    default: "low quality, worst quality, blurry, distorted, deformed face, extra limbs, three arms, multiple faces, two heads, warping, morphing, cropped head"
+  width:
+    api: ["55", "inputs", "width"]
+    type: int
+    default: 720
+  height:
+    api: ["55", "inputs", "height"]
+    type: int
+    default: 1280
+  length:
+    api: ["55", "inputs", "length"]
+    type: int
+    default: 81
+    min: 5
+    max: 121
+    description: "Frames (4n+1). 81 ≈ 5s at 16fps."
+  seed:
+    api: ["86", "inputs", "noise_seed"]
+    type: seed
+    default: -1

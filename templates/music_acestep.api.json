@@ -1,0 +1,50 @@
+{
+  "14": {
+    "class_type": "CheckpointLoaderSimple",
+    "inputs": { "ckpt_name": "ace_step_v1_3.5b.safetensors" }
+  },
+  "17": {
+    "class_type": "EmptyAceStepLatentAudio",
+    "inputs": { "seconds": 30.0, "batch_size": 1 }
+  },
+  "18": {
+    "class_type": "TextEncodeAceStepAudio",
+    "inputs": {
+      "tags": "lofi hip hop, chill, mellow piano, soft drums, warm",
+      "lyrics": "",
+      "lyrics_strength": 1.0,
+      "clip": ["14", 1]
+    }
+  },
+  "44": {
+    "class_type": "ConditioningZeroOut",
+    "inputs": { "conditioning": ["18", 0] }
+  },
+  "52": {
+    "class_type": "KSampler",
+    "inputs": {
+      "seed": 0,
+      "steps": 50,
+      "cfg": 5.0,
+      "sampler_name": "euler",
+      "scheduler": "simple",
+      "denoise": 1.0,
+      "model": ["14", 0],
+      "positive": ["18", 0],
+      "negative": ["44", 0],
+      "latent_image": ["17", 0]
+    }
+  },
+  "49": {
+    "class_type": "VAEDecodeAudio",
+    "inputs": { "samples": ["52", 0], "vae": ["14", 2] }
+  },
+  "50": {
+    "class_type": "SaveAudioMP3",
+    "inputs": {
+      "filename_prefix": "backlot/music",
+      "quality": "V0",
+      "audio": ["49", 0]
+    }
+  }
+}

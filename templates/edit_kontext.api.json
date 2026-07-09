@@ -1,0 +1,65 @@
+{
+  "37": {
+    "class_type": "UNETLoader",
+    "inputs": { "unet_name": "flux1-dev-kontext_fp8_scaled.safetensors", "weight_dtype": "default" }
+  },
+  "38": {
+    "class_type": "DualCLIPLoader",
+    "inputs": { "clip_name1": "clip_l.safetensors", "clip_name2": "t5xxl_fp8_e4m3fn.safetensors", "type": "flux" }
+  },
+  "39": {
+    "class_type": "VAELoader",
+    "inputs": { "vae_name": "ae.safetensors" }
+  },
+  "23": {
+    "class_type": "LoadImage",
+    "inputs": { "image": "placeholder.png" }
+  },
+  "42": {
+    "class_type": "FluxKontextImageScale",
+    "inputs": { "image": ["23", 0] }
+  },
+  "44": {
+    "class_type": "VAEEncode",
+    "inputs": { "pixels": ["42", 0], "vae": ["39", 0] }
+  },
+  "6": {
+    "class_type": "CLIPTextEncode",
+    "inputs": { "text": "make the background a starry deep-space sky", "clip": ["38", 0] }
+  },
+  "26": {
+    "class_type": "FluxGuidance",
+    "inputs": { "guidance": 2.5, "conditioning": ["6", 0] }
+  },
+  "35": {
+    "class_type": "ReferenceLatent",
+    "inputs": { "conditioning": ["26", 0], "latent": ["44", 0] }
+  },
+  "7": {
+    "class_type": "CLIPTextEncode",
+    "inputs": { "text": "", "clip": ["38", 0] }
+  },
+  "31": {
+    "class_type": "KSampler",
+    "inputs": {
+      "seed": 0,
+      "steps": 20,
+      "cfg": 1.0,
+      "sampler_name": "euler",
+      "scheduler": "simple",
+      "denoise": 1.0,
+      "model": ["37", 0],
+      "positive": ["35", 0],
+      "negative": ["7", 0],
+      "latent_image": ["44", 0]
+    }
+  },
+  "8": {
+    "class_type": "VAEDecode",
+    "inputs": { "samples": ["31", 0], "vae": ["39", 0] }
+  },
+  "9": {
+    "class_type": "SaveImage",
+    "inputs": { "filename_prefix": "backlot/edit", "images": ["8", 0] }
+  }
+}

@@ -1,0 +1,40 @@
+name: edit_kontext
+title: "Edit Image (FLUX.1 Kontext)"
+kind: edit
+description: "Edit an existing image with a natural-language instruction (FLUX.1 Kontext). e.g. 'make it daytime', 'change the text to DEPLOY'."
+template: templates/edit_kontext.api.json
+ui_template: templates/edit_kontext.ui.json
+client_outputs: ["9"]
+
+inputs:
+  image:
+    api: ["23", "inputs", "image"]
+    type: image
+
+inject:
+  instruction:
+    api: ["6", "inputs", "text"]
+    type: string
+    required: true
+    description: "What to change. Describe the edit, not the whole image (e.g. 'make the jacket red')."
+  image:
+    api: ["23", "inputs", "image"]
+    type: image
+    required: true
+    description: "Source image filename (relative to ComfyUI input/)."
+  guidance:
+    api: ["26", "inputs", "guidance"]
+    type: float
+    default: 2.5
+    min: 0.0
+    max: 10.0
+  steps:
+    api: ["31", "inputs", "steps"]
+    type: int
+    default: 20
+    min: 1
+    max: 50
+  seed:
+    api: ["31", "inputs", "seed"]
+    type: seed
+    default: -1

@@ -1,0 +1,77 @@
+name: talkhost_sonic
+title: "Talking Host (audio-driven portrait, Sonic)"
+kind: video
+description: >
+  Animate a head-and-shoulders portrait into a lip-synced talking-head clip with Sonic
+  (SVD-backed audio-driven portrait animation). Feed a tight close-up face + a voice WAV
+  and Sonic drives the mouth/expression to the audio. For natural results use a
+  head-and-shoulders close-up (NOT full body) and min_resolution >= 768.
+template: templates/talkhost_sonic.api.json
+client_outputs: ["8"]                          # SaveVideo (mp4, h264)
+
+inputs:
+  image:
+    api: ["3", "inputs", "image"]              # LoadImage (filename in ComfyUI input/)
+    type: image
+  audio:
+    api: ["4", "inputs", "audio"]              # LoadAudio (filename in ComfyUI input/)
+    type: audio
+
+inject:
+  image:
+    api: ["3", "inputs", "image"]
+    type: image
+    required: true
+    description: "Source portrait to animate (filename, relative to ComfyUI input/). Use a head-and-shoulders close-up."
+  audio:
+    api: ["4", "inputs", "audio"]
+    type: audio
+    required: true
+    description: "Voice/audio track to drive lip-sync (filename, relative to ComfyUI input/)."
+  min_resolution:
+    api: ["5", "inputs", "min_resolution"]
+    type: int
+    default: 768
+    min: 256
+    max: 1024
+    description: "Face crop working resolution. 768-1024 = sharper mouth/teeth (watch VRAM)."
+  duration:
+    api: ["5", "inputs", "duration"]
+    type: float
+    default: 11.0
+    min: 1.0
+    max: 60.0
+    description: "Seconds of the audio to animate (clamped to the audio length)."
+  expand_ratio:
+    api: ["5", "inputs", "expand_ratio"]
+    type: float
+    default: 0.5
+    min: 0.0
+    max: 1.0
+    description: "How much around the detected face to include (higher = more head/shoulders)."
+  inference_steps:
+    api: ["6", "inputs", "inference_steps"]
+    type: int
+    default: 25
+    min: 1
+    max: 60
+    description: "Sampler steps per frame."
+  dynamic_scale:
+    api: ["6", "inputs", "dynamic_scale"]
+    type: float
+    default: 0.8
+    min: 0.0
+    max: 3.0
+    description: "Motion intensity. ~0.8 = calm/natural; higher = livelier but stiffer/uncannier."
+  fps:
+    api: ["6", "inputs", "fps"]
+    type: float
+    default: 25.0
+    min: 1.0
+    max: 60.0
+    description: "Output frame rate."
+  seed:
+    api: ["6", "inputs", "seed"]
+    type: seed
+    default: -1
+    max: 2147483647     # SONICSampler seed is int32-capped; clamp the randomizer to fit

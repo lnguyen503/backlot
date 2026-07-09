@@ -1,0 +1,1632 @@
+<!doctype html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Backlot Studio</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { background: #0b0b12; }
+    .scroll::-webkit-scrollbar { width: 8px; height: 8px; }
+    .scroll::-webkit-scrollbar-thumb { background: #2a2a3a; border-radius: 4px; }
+    @keyframes pulse2 { 0%,100%{opacity:.5} 50%{opacity:1} }
+    .pulsing { animation: pulse2 1.2s ease-in-out infinite; }
+  </style>
+</head>
+<body class="text-slate-200 antialiased">
+  <div class="flex h-screen overflow-hidden">
+    <!-- Far left: sessions -->
+    <nav class="w-[210px] shrink-0 border-r border-slate-800 flex flex-col bg-[#0a0a11]">
+      <div class="p-2 flex gap-1 border-b border-slate-800">
+        <button id="modeStudio" class="flex-1 rounded-md py-1.5 text-sm font-medium">Studio</button>
+        <button id="modeStoryboard" class="flex-1 rounded-md py-1.5 text-sm font-medium">Storyboard</button>
+      </div>
+      <!-- Sessions: Studio-only (the gallery's project filter). Hidden in Storyboard mode. -->
+      <div id="sessionsPanel" class="flex-1 flex flex-col overflow-hidden">
+        <div class="px-4 py-4 border-b border-slate-800 flex items-center justify-between">
+          <span class="text-sm font-semibold text-slate-300">Sessions</span>
+          <button id="newSessionBtn" title="New session"
+            class="text-violet-400 hover:text-violet-300 text-xl leading-none">+</button>
+        </div>
+        <div id="sessionList" class="flex-1 overflow-y-auto scroll p-2 space-y-0.5 text-sm"></div>
+      </div>
+      <!-- Storyboard-mode hint for the otherwise-empty rail -->
+      <div id="navBoardsHint" class="hidden flex-1 px-4 py-5 text-xs text-slate-600 leading-relaxed">
+        Your boards are in the <span class="text-slate-400">board picker</span> at the top of the
+        Storyboard view — pick one or start a new board there.
+      </div>
+    </nav>
+
+    <!-- Studio view (generate panel + gallery) -->
+    <div id="studioView" class="flex flex-1 overflow-hidden">
+    <!-- Generate panel -->
+    <aside class="w-[360px] shrink-0 border-r border-slate-800 flex flex-col bg-[#0e0e18]">
+      <div class="px-5 py-4 border-b border-slate-800">
+        <h1 class="text-lg font-semibold tracking-tight">🎨 Backlot Studio</h1>
+        <p class="text-xs text-slate-500 mt-0.5">Local image · video · music engine</p>
+      </div>
+
+      <div class="p-5 space-y-4 overflow-y-auto scroll flex-1">
+        <!-- type tabs -->
+        <div id="typeTabs" class="flex gap-1 p-1 bg-slate-800/40 rounded-lg text-sm"></div>
+
+        <!-- standard (schema-driven) form: image / video / audio -->
+        <div id="stdForm" class="space-y-4">
+        <!-- capability -->
+        <div>
+          <label class="text-xs font-medium text-slate-400">Model</label>
+          <select id="capSelect" class="mt-1 w-full bg-slate-800/60 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-violet-500"></select>
+          <p id="capDesc" class="text-xs text-slate-500 mt-1"></p>
+        </div>
+
+        <!-- prompt -->
+        <div>
+          <div class="flex items-center gap-2">
+            <label id="promptLabel" class="text-xs font-medium text-slate-400">Prompt</label>
+            <button id="assistBtn" type="button" title="Let AI write or improve this prompt"
+              class="ml-auto text-[11px] text-violet-400 hover:text-violet-300">✨ AI assist</button>
+          </div>
+          <textarea id="prompt" rows="5" placeholder="Describe what you want to create..."
+            class="mt-1 w-full bg-slate-800/60 border border-slate-700 rounded-lg px-3 py-2 text-sm resize-none focus:outline-none focus:ring-1 focus:ring-violet-500"></textarea>
+        </div>
+
+        <!-- advanced toggle -->
+        <button id="advToggle" class="text-xs text-violet-400 hover:text-violet-300 flex items-center gap-1">
+          <span id="advCaret">▸</span> Advanced settings
+        </button>
+        <div id="advFields" class="hidden space-y-3"></div>
+        </div>
+
+        <!-- 3D / Blender form (AI-stylized 3D animation: Blender depth → Wan VACE) -->
+        <div id="blender3d" class="hidden space-y-4">
+          <div>
+            <label class="text-xs font-medium text-slate-400">Scene (Blender)</label>
+            <select id="blScene" class="mt-1 w-full bg-slate-800/60 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-violet-500"></select>
+            <p id="blSceneDesc" class="text-xs text-slate-500 mt-1"></p>
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <label class="text-xs font-medium text-slate-400">Style prompt <span class="text-slate-600">— blank = scene default</span></label>
+              <button id="blAssistBtn" type="button" title="Let AI write or improve this style prompt"
+                class="ml-auto text-[11px] text-violet-400 hover:text-violet-300">✨ AI assist</button>
+            </div>
+            <textarea id="blPrompt" rows="4" placeholder=""
+              class="mt-1 w-full bg-slate-800/60 border border-slate-700 rounded-lg px-3 py-2 text-sm resize-none focus:outline-none focus:ring-1 focus:ring-violet-500"></textarea>
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="text-xs font-medium text-slate-400">Length</label>
+              <select id="blFrames" class="mt-1 w-full bg-slate-800/60 border border-slate-700 rounded-lg px-3 py-1.5 text-sm">
+                <option value="33">33 frames (~2s)</option>
+                <option value="49">49 frames (~3s)</option>
+                <option value="81">81 frames (~5s)</option>
+              </select>
+            </div>
+            <div>
+              <label class="text-xs font-medium text-slate-400">Quality</label>
+              <select id="blModel" class="mt-1 w-full bg-slate-800/60 border border-slate-700 rounded-lg px-3 py-1.5 text-sm">
+                <option value="wan2.1_vace_1.3B_fp16.safetensors">Fast (VACE 1.3B)</option>
+                <option value="wan2.1_vace_14B_fp16.safetensors">Best (VACE 14B)</option>
+              </select>
+            </div>
+          </div>
+          <p class="text-[11px] text-slate-600">Blender renders a depth animation, then Wan VACE restyles it in one coherent pass. The Blender step runs first (~1 min), then diffusion.</p>
+        </div>
+
+        <!-- Motion Sync form (motion transfer: reference clip → depth → Wan VACE) -->
+        <div id="motionForm" class="hidden space-y-4">
+          <div>
+            <label class="text-xs font-medium text-slate-400">Reference clip</label>
+            <input id="msVideo" type="file" accept="video/*"
+              class="mt-1 w-full text-xs text-slate-400 file:mr-2 file:rounded file:border-0 file:bg-slate-700 file:px-3 file:py-1.5 file:text-slate-200 hover:file:bg-slate-600">
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <label class="text-xs font-medium text-slate-400">Subject prompt</label>
+              <button id="msAssistBtn" type="button" title="Let AI write or improve this prompt"
+                class="ml-auto text-[11px] text-violet-400 hover:text-violet-300">✨ AI assist</button>
+            </div>
+            <textarea id="msPrompt" rows="3" placeholder="the new subject to drive with the clip's motion (e.g. a gold robot dancing)"
+              class="mt-1 w-full bg-slate-800/60 border border-slate-700 rounded-lg px-3 py-2 text-sm resize-none focus:outline-none focus:ring-1 focus:ring-violet-500"></textarea>
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="text-xs font-medium text-slate-400">Frames</label>
+              <select id="msFrames" class="mt-1 w-full bg-slate-800/60 border border-slate-700 rounded-lg px-3 py-1.5 text-sm">
+                <option value="25">25 (fast)</option>
+                <option value="33">33</option>
+                <option value="49">49</option>
+              </select>
+            </div>
+            <div>
+              <label class="text-xs font-medium text-slate-400">Quality</label>
+              <select id="msModel" class="mt-1 w-full bg-slate-800/60 border border-slate-700 rounded-lg px-3 py-1.5 text-sm">
+                <option value="wan2.1_vace_1.3B_fp16.safetensors">Fast (VACE 1.3B)</option>
+                <option value="wan2.1_vace_14B_fp16.safetensors">Best (VACE 14B)</option>
+              </select>
+            </div>
+          </div>
+          <p class="text-[11px] text-slate-600">The clip's per-frame depth drives Wan VACE, so your prompted subject follows the reference motion. Depth runs on CPU first (~1 min for a short clip), then diffusion.</p>
+        </div>
+
+        <!-- Voice-over form (text → speech, Kokoro TTS) -->
+        <div id="voiceForm" class="hidden space-y-4">
+          <div>
+            <label class="text-xs font-medium text-slate-400">Script</label>
+            <textarea id="voText" rows="6" placeholder="Type what the voice should say…"
+              class="mt-1 w-full bg-slate-800/60 border border-slate-700 rounded-lg px-3 py-2 text-sm resize-none focus:outline-none focus:ring-1 focus:ring-violet-500"></textarea>
+          </div>
+          <div>
+            <label class="text-xs font-medium text-slate-400">Voice</label>
+            <select id="voVoice" class="mt-1 w-full bg-slate-800/60 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-violet-500">
+              <option value="af_heart">American female — warm &amp; friendly</option>
+              <option value="af_bella">American female — bright &amp; lively</option>
+              <option value="am_michael">American male — warm &amp; steady</option>
+              <option value="am_adam">American male — younger &amp; earnest</option>
+              <option value="bf_emma">British female — calm &amp; measured</option>
+              <option value="bf_isabella">British female — crisp &amp; confident</option>
+              <option value="bm_george">British male — mature &amp; refined</option>
+              <option value="bm_lewis">British male — deep &amp; calm</option>
+            </select>
+          </div>
+          <p class="text-[11px] text-slate-600">Kokoro TTS runs locally in-process (no reference clip). The voiceover lands in the gallery as an audio clip.</p>
+        </div>
+
+        <!-- Director form (premise → autonomous finished film) -->
+        <div id="directorForm" class="hidden space-y-4">
+          <div class="rounded-lg bg-violet-600/10 border border-violet-700/40 p-2.5 text-[11px] text-violet-200/90">
+            🎬 <b>Director</b> — give a premise + a little guidance and it plans a board, renders each
+            shot, animates, assembles and scores a finished film. Opens in the Storyboard view so you
+            can watch it build and keep editing.
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <label class="text-xs font-medium text-slate-400">Premise</label>
+              <button id="dirAssistBtn" type="button" title="Let AI expand the premise" class="ml-auto text-[11px] text-violet-400 hover:text-violet-300">✨ AI assist</button>
+            </div>
+            <textarea id="dirPremise" rows="4" placeholder="One line — e.g. a lonely lighthouse keeper watches a storm roll in over the sea"
+              class="mt-1 w-full bg-slate-800/60 border border-slate-700 rounded-lg px-3 py-2 text-sm resize-none focus:outline-none focus:ring-1 focus:ring-violet-500"></textarea>
+          </div>
+          <div>
+            <label class="text-xs font-medium text-slate-400">Guidance <span class="text-slate-600">— optional style / aspect / length</span></label>
+            <input id="dirGuidance" placeholder="e.g. cinematic, moody, 16:9, ~10 seconds"
+              class="mt-1 w-full bg-slate-800/60 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-violet-500">
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="text-xs font-medium text-slate-400">Shots <span class="text-slate-600">— story length</span></label>
+              <select id="dirShots" class="mt-1 w-full bg-slate-800/60 border border-slate-700 rounded-lg px-3 py-1.5 text-sm">
+                <option value="2">2 (quick)</option><option value="3">3</option>
+                <option value="4" selected>4</option><option value="5">5</option>
+                <option value="6">6</option><option value="8">8 (~30s)</option>
+                <option value="10">10</option><option value="12">12 (~45–60s)</option>
+              </select>
+            </div>
+            <div>
+              <label class="text-xs font-medium text-slate-400">Motion quality</label>
+              <select id="dirI2v" class="mt-1 w-full bg-slate-800/60 border border-slate-700 rounded-lg px-3 py-1.5 text-sm">
+                <option value="svd">Fast (SVD)</option>
+                <option value="wan14b_fast" selected>Best (Wan 14B)</option>
+              </select>
+            </div>
+          </div>
+          <div class="flex items-center gap-5 text-xs text-slate-400">
+            <label class="flex items-center gap-1.5"><input id="dirMusic" type="checkbox" checked class="accent-violet-500"> Music score</label>
+            <label class="flex items-center gap-1.5"><input id="dirNarrate" type="checkbox" class="accent-violet-500"> Narration</label>
+          </div>
+          <p class="text-[11px] text-slate-600">Renders in the background (stills → animate → assemble → score) — watch the Storyboard view fill in. Time scales with shots × quality: ~2–3 min per Wan-14B shot, ~1 min per SVD shot. All local, $0.</p>
+        </div>
+
+        <button id="genBtn"
+          class="w-full bg-violet-600 hover:bg-violet-500 disabled:opacity-50 disabled:cursor-not-allowed transition rounded-lg py-2.5 text-sm font-semibold">
+          Generate
+        </button>
+        <div id="genMsg" class="text-xs text-rose-400"></div>
+      </div>
+    </aside>
+
+    <!-- Right: gallery -->
+    <main class="flex-1 flex flex-col overflow-hidden">
+      <div class="px-6 py-3 border-b border-slate-800 flex items-center gap-2 flex-wrap">
+        <h2 class="text-sm font-medium text-slate-300 mr-1">Gallery</h2>
+        <input id="galSearch" placeholder="🔍 Search prompts…"
+          class="bg-slate-800/60 border border-slate-700 rounded-lg px-3 py-1 text-xs w-44 focus:outline-none focus:ring-1 focus:ring-violet-500">
+        <select id="galType" title="Filter by type"
+          class="bg-slate-800/60 border border-slate-700 rounded-lg px-2 py-1 text-xs focus:outline-none">
+          <option value="all">All types</option>
+          <option value="image">Images</option>
+          <option value="video">Videos</option>
+          <option value="audio">Audio</option>
+        </select>
+        <select id="galSort" title="Sort order"
+          class="bg-slate-800/60 border border-slate-700 rounded-lg px-2 py-1 text-xs focus:outline-none">
+          <option value="new">Newest first</option>
+          <option value="old">Oldest first</option>
+        </select>
+        <span id="galCount" class="text-[11px] text-slate-500"></span>
+        <span id="selInfo" class="text-xs text-violet-300 ml-auto"></span>
+        <button id="delSelBtn" class="hidden text-xs bg-rose-600 hover:bg-rose-500 rounded px-2 py-1 font-semibold">Delete selected</button>
+        <button id="selAllBtn" class="text-xs text-slate-500 hover:text-slate-300">Select all</button>
+        <button id="refreshBtn" class="text-xs text-slate-500 hover:text-slate-300">↻ Refresh</button>
+      </div>
+      <div id="progress" class="px-6"></div>
+      <div class="flex-1 min-h-0 overflow-y-auto scroll">
+        <div id="gallery" class="p-6 columns-2 lg:columns-3 xl:columns-4 gap-4"></div>
+      </div>
+    </main>
+    </div>
+
+    <!-- Storyboard view -->
+    <section id="storyboardView" class="hidden flex-1 flex flex-col overflow-hidden bg-[#0e0e18]">
+      <div class="px-6 py-4 border-b border-slate-800 flex items-center gap-3 flex-wrap">
+        <h2 class="text-lg font-semibold tracking-tight">🎬 Storyboard</h2>
+        <select id="sbPicker" class="bg-slate-800/60 border border-slate-700 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-violet-500"></select>
+        <button id="sbNewBtn" class="text-sm bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg px-3 py-1.5">+ New board</button>
+        <span id="sbSaveStatus" class="hidden text-xs ml-auto"></span>
+        <button id="sbSaveBtn" class="hidden text-sm bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 rounded-lg px-3 py-1.5 font-semibold">Save</button>
+        <button id="sbDeleteBtn" class="hidden text-sm text-slate-500 hover:text-rose-400">Delete board</button>
+      </div>
+      <div id="sbMsg" class="px-6 text-xs text-rose-400"></div>
+      <div id="sbScroll" class="flex-1 overflow-y-auto scroll p-6">
+        <!-- New board form -->
+        <div id="sbNew" class="hidden max-w-2xl mx-auto mt-10 rounded-lg bg-slate-800/30 border border-slate-700/60 p-6">
+          <h3 class="text-base font-semibold mb-3">New storyboard</h3>
+          <label class="text-[11px] font-medium text-slate-500 uppercase tracking-wide">Board name</label>
+          <input id="sbNewName" placeholder="e.g. Rooftop Garden"
+            class="w-full bg-slate-800/60 border border-slate-700 rounded-lg px-3 py-2 text-sm mt-1 mb-4 focus:outline-none focus:ring-1 focus:ring-violet-500">
+          <label class="text-[11px] font-medium text-slate-500 uppercase tracking-wide">Template <span class="normal-case text-slate-600">— gives you a ready-to-fill structure</span></label>
+          <select id="sbTemplate" class="w-full bg-slate-800/60 border border-slate-700 rounded-lg px-3 py-2 text-sm mt-1 mb-2 focus:outline-none focus:ring-1 focus:ring-violet-500">
+            <option value="">— None (blank) —</option>
+          </select>
+          <p id="sbTemplateDesc" class="text-[11px] text-slate-500 mb-5 h-4"></p>
+          <div class="grid sm:grid-cols-2 gap-3">
+            <div class="rounded-lg border border-slate-700/60 p-4 flex flex-col">
+              <h4 class="text-sm font-semibold mb-1">Start blank</h4>
+              <p class="text-xs text-slate-500 mb-3 flex-1">Create the board (empty, or scaffolded from the template), then fill panels in — the ✨ button writes prompts for you.</p>
+              <button id="sbBlankBtn" class="bg-slate-700 hover:bg-slate-600 transition rounded-lg py-2 px-4 text-sm font-semibold">Create blank board</button>
+            </div>
+            <div class="rounded-lg border border-violet-700/40 p-4 flex flex-col">
+              <h4 class="text-sm font-semibold mb-1">Draft with AI ✨</h4>
+              <p class="text-xs text-slate-500 mb-2">Describe your idea — the director drafts scenes, characters &amp; shots.</p>
+              <textarea id="sbIdea" rows="3" placeholder="A retired astronaut tends a rooftop garden…"
+                class="w-full bg-slate-800/60 border border-slate-700 rounded-lg px-3 py-2 text-sm resize-none mb-2 focus:outline-none focus:ring-1 focus:ring-violet-500"></textarea>
+              <button id="sbDraftBtn" class="mt-auto bg-violet-600 hover:bg-violet-500 disabled:opacity-50 disabled:cursor-not-allowed transition rounded-lg py-2 px-4 text-sm font-semibold">Draft storyboard</button>
+            </div>
+          </div>
+        </div>
+        <!-- Active board -->
+        <div id="sbBoard"></div>
+        <div id="sbEmpty" class="hidden text-center text-slate-600 text-sm mt-20">No storyboards yet — create one with “+ New board”.</div>
+      </div>
+    </section>
+  </div>
+
+  <!-- Detail / lightbox: full view + prompt + all tools -->
+  <div id="detailModal" class="hidden fixed inset-0 z-40 bg-black/85 flex items-center justify-center p-4">
+    <div class="bg-[#0e0e18] border border-slate-700 rounded-xl w-[1040px] max-w-[95vw] max-h-[94vh] flex flex-col overflow-hidden">
+      <div class="flex items-center gap-3 px-4 py-2.5 border-b border-slate-800">
+        <h3 class="text-sm font-semibold text-slate-200 shrink-0">Creation</h3>
+        <span id="dtMeta" class="text-[11px] text-slate-500 truncate"></span>
+        <button id="dtClose" class="ml-auto text-slate-400 hover:text-slate-200 text-lg leading-none shrink-0">✕</button>
+      </div>
+      <div class="flex-1 overflow-y-auto scroll flex flex-col lg:flex-row gap-4 p-4">
+        <div id="dtMedia" class="flex-1 flex items-center justify-center bg-slate-900 rounded min-h-[240px] overflow-hidden"></div>
+        <div class="lg:w-72 shrink-0 space-y-3">
+          <div>
+            <div class="flex items-center gap-2">
+              <label class="text-[11px] uppercase tracking-wide text-slate-500">Prompt</label>
+              <button id="dtCopy" class="text-[11px] text-violet-400 hover:text-violet-300" title="Copy prompt to clipboard">⧉ Copy</button>
+            </div>
+            <p id="dtPrompt" class="text-xs text-slate-300 mt-1 whitespace-pre-wrap break-words max-h-32 overflow-y-auto scroll"></p>
+          </div>
+          <div>
+            <label class="text-[11px] uppercase tracking-wide text-slate-500">Tools</label>
+            <div id="dtTools" class="grid grid-cols-2 gap-1.5 mt-1"></div>
+          </div>
+          <div id="dtActionArea"></div>
+          <div class="flex gap-2 pt-1">
+            <a id="dtDownload" class="flex-1 text-center text-xs bg-slate-700 hover:bg-slate-600 rounded px-2 py-1.5" download>⭳ Download</a>
+            <button id="dtDelete" class="text-xs bg-rose-600/80 hover:bg-rose-500 rounded px-3 py-1.5">🗑 Delete</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Inpaint / VFX mask editor -->
+  <div id="inpaintModal" class="hidden fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
+    <div class="bg-[#0e0e18] border border-slate-700 rounded-xl p-4 flex flex-col gap-3 max-w-[92vw]">
+      <div class="flex items-center gap-3">
+        <h3 class="text-sm font-semibold text-slate-200">🎨 Inpaint — paint over what to change</h3>
+        <button id="ipClose" class="ml-auto text-slate-400 hover:text-slate-200 text-lg leading-none">✕</button>
+      </div>
+      <div class="relative flex items-center justify-center bg-slate-900 rounded overflow-hidden" style="max-height:64vh">
+        <img id="ipImg" class="block select-none pointer-events-none" style="max-height:64vh; max-width:88vw">
+        <canvas id="ipCanvas" class="absolute left-0 top-0 cursor-crosshair opacity-60"></canvas>
+      </div>
+      <div class="flex items-center gap-3 flex-wrap">
+        <label class="text-xs text-slate-400 flex items-center gap-1.5">Brush
+          <input id="ipBrush" type="range" min="8" max="140" value="44" class="accent-violet-500"></label>
+        <button id="ipClear" class="text-xs bg-slate-700 hover:bg-slate-600 rounded px-2 py-1">Clear mask</button>
+        <input id="ipPrompt" placeholder="What to paint into the masked area…"
+          class="flex-1 min-w-[220px] bg-slate-800/60 border border-slate-700 rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-violet-500">
+        <button id="ipRun" class="bg-violet-600 hover:bg-violet-500 rounded px-4 py-1.5 text-sm font-semibold shrink-0">Inpaint</button>
+      </div>
+      <p class="text-[11px] text-slate-600">Paint over the region to regenerate; the rest is preserved. Tip: follow the real edges for a clean blend.</p>
+    </div>
+  </div>
+
+  <script>
+  const COMFY = "http://127.0.0.1:8188";
+  let WORKFLOWS = [], CURRENT = null, SCHEMA = null, CUR_KIND = "image", CUR_SESSION = null;
+
+  const el = (id) => document.getElementById(id);
+  const primaryParam = (s) => (s.inject.find(p => p.required && p.type === "string")
+    || s.inject.find(p => p.type === "string") || {}).name;
+
+  async function api(path, opts) {
+    const r = await fetch(path, opts);
+    if (!r.ok) throw new Error((await r.json().catch(()=>({detail:r.statusText}))).detail || r.statusText);
+    return r.json();
+  }
+
+  async function init() {
+    const data = await api("/api/workflows");
+    WORKFLOWS = data.workflows;
+    const kinds = [...new Set(WORKFLOWS.map(w => w.kind))];
+    const order = ["image","video","audio"].filter(k => kinds.includes(k));
+    el("typeTabs").innerHTML = order.map(k =>
+      `<button data-kind="${k}" class="flex-1 rounded-md py-1.5 capitalize tab">${k}</button>`).join("")
+      + `<button data-kind="3d" class="flex-1 rounded-md py-1.5 tab">3D</button>`
+      + `<button data-kind="motion" class="flex-1 rounded-md py-1.5 tab">Motion</button>`
+      + `<button data-kind="voice" class="flex-1 rounded-md py-1.5 tab">Voice</button>`
+      + `<button data-kind="director" class="flex-1 rounded-md py-1.5 tab">🎬</button>`;
+    document.querySelectorAll(".tab").forEach(b => b.onclick = () => selectKind(b.dataset.kind));
+    selectKind("image");
+    loadSessions();
+    loadAssets();
+  }
+
+  function selectKind(kind) {
+    CUR_KIND = kind;
+    document.querySelectorAll(".tab").forEach(b =>
+      b.className = "flex-1 rounded-md py-1.5 capitalize tab " +
+      (b.dataset.kind === kind ? "bg-violet-600 text-white" : "text-slate-400 hover:text-slate-200"));
+    const is3d = kind === "3d", isMotion = kind === "motion", isVoice = kind === "voice", isDir = kind === "director";
+    const custom = is3d || isMotion || isVoice || isDir;
+    el("stdForm").classList.toggle("hidden", custom);
+    el("blender3d").classList.toggle("hidden", !is3d);
+    el("motionForm").classList.toggle("hidden", !isMotion);
+    el("voiceForm").classList.toggle("hidden", !isVoice);
+    el("directorForm").classList.toggle("hidden", !isDir);
+    resetGenBtn();
+    if (is3d) { loadBlenderScenes(); return; }
+    if (isMotion || isVoice || isDir) return;
+    const caps = WORKFLOWS.filter(w => w.kind === kind);
+    el("capSelect").innerHTML = caps.map(c => `<option value="${c.name}">${c.title}</option>`).join("");
+    selectCap(caps[0].name);
+  }
+
+  function resetGenBtn() {
+    el("genBtn").disabled = false;
+    el("genBtn").textContent = CUR_KIND === "3d" ? "Render 3D animation"
+      : CUR_KIND === "motion" ? "Motion sync"
+      : CUR_KIND === "voice" ? "Generate voice-over"
+      : CUR_KIND === "director" ? "🎬 Direct the film" : "Generate";
+  }
+
+  // 🎬 Director: premise -> plan a board, render/animate/assemble/score in the background,
+  // then open it in the Storyboard view and watch it fill in.
+  let DIR_WATCH = null;
+  async function directFilm() {
+    const premise = el("dirPremise").value.trim();
+    if (!premise) { el("genMsg").textContent = "Enter a premise first."; return; }
+    el("genMsg").textContent = ""; el("genBtn").disabled = true; el("genBtn").textContent = "Planning…";
+    try {
+      const b = await api("/api/storyboards/direct", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ premise, guidance: el("dirGuidance").value.trim(),
+          max_shots: Number(el("dirShots").value), i2v: el("dirI2v").value,
+          music: el("dirMusic").checked, narrate: el("dirNarrate").checked })
+      });
+      resetGenBtn();
+      setMode("storyboard");
+      await sbLoadList(b.id);
+      sbOpen(b.id);
+      directorWatch(b.id);
+    } catch (e) { el("genMsg").textContent = e.message; resetGenBtn(); }
+  }
+  function directorWatch(id) {
+    clearInterval(DIR_WATCH);
+    const t0 = Date.now();
+    DIR_WATCH = setInterval(async () => {
+      if (SB_MODE !== "storyboard" || !SB_BOARD || SB_BOARD.id !== id || Date.now() - t0 > 20 * 60 * 1000) {
+        clearInterval(DIR_WATCH); return;
+      }
+      try {
+        const b = await api("/api/storyboards/" + id);
+        const clips = b.panels.filter(p => p.video).length, was = SB_BOARD.panels.filter(p => p.video).length;
+        const stills = b.panels.filter(p => p.still).length, wasS = SB_BOARD.panels.filter(p => p.still).length;
+        if (clips !== was || stills !== wasS || (!!b.assembled !== !!SB_BOARD.assembled) || (!!b.score !== !!SB_BOARD.score)) {
+          SB_BOARD = b; sbRender();
+        }
+        if (b.assembled && b.score) clearInterval(DIR_WATCH);
+      } catch (e) { /* keep polling */ }
+    }, 6000);
+  }
+
+  async function voiceOver() {
+    const text = el("voText").value.trim();
+    if (!text) { el("genMsg").textContent = "Type a script first."; return; }
+    el("genMsg").textContent = ""; el("genBtn").disabled = true;
+    el("genBtn").textContent = "Speaking…";
+    try {
+      const res = await api("/api/voiceover", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text, voice: el("voVoice").value, session_id: CUR_SESSION })
+      });
+      (res.outputs || []).forEach(o => prependAsset(o, { text }));
+      setTimeout(loadAssets, 400);
+    } catch (e) { el("genMsg").textContent = e.message; }
+    finally { resetGenBtn(); }
+  }
+
+  async function motionSync() {
+    const f = el("msVideo").files[0];
+    if (!f) { el("genMsg").textContent = "Choose a reference clip first."; return; }
+    el("genMsg").textContent = ""; el("genBtn").disabled = true;
+    el("genBtn").textContent = "Extracting depth (CPU)…";
+    const fd = new FormData();
+    fd.append("video", f); fd.append("prompt", el("msPrompt").value.trim());
+    fd.append("frames", el("msFrames").value); fd.append("model", el("msModel").value);
+    fd.append("session_id", CUR_SESSION || "");
+    try {
+      const res = await api("/api/motionsync", { method: "POST", body: fd });
+      streamRun(res.run_id);
+    } catch (e) { el("genMsg").textContent = e.message; resetGenBtn(); }
+  }
+
+  // ---- 3D / Blender: pick a scene -> Blender depth -> Wan VACE restyle ----
+  let BL_SCENES = [];
+  async function loadBlenderScenes() {
+    if (!BL_SCENES.length) {
+      try { BL_SCENES = (await api("/api/blender/scenes")).scenes; }
+      catch (e) { el("genMsg").textContent = e.message; return; }
+      el("blScene").innerHTML = BL_SCENES.map(s => `<option value="${s.key}">${esc(s.label)}</option>`).join("");
+      el("blScene").onchange = updateBlScene;
+    }
+    updateBlScene();
+  }
+  function updateBlScene() {
+    const s = BL_SCENES.find(x => x.key === el("blScene").value) || BL_SCENES[0];
+    if (!s) return;
+    el("blSceneDesc").textContent = s.motion || "";
+    el("blPrompt").placeholder = s.prompt || "";
+  }
+  async function blenderAnimate() {
+    el("genMsg").textContent = "";
+    el("genBtn").disabled = true; el("genBtn").textContent = "Rendering depth (Blender)…";
+    try {
+      const res = await api("/api/blender/animate", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ scene: el("blScene").value, prompt: el("blPrompt").value.trim(),
+          frames: Number(el("blFrames").value), model: el("blModel").value, session_id: CUR_SESSION })
+      });
+      streamRun(res.run_id);
+    } catch (e) { el("genMsg").textContent = e.message; resetGenBtn(); }
+  }
+
+  async function selectCap(name) {
+    el("capSelect").value = name;
+    SCHEMA = await api("/api/workflows/" + name);
+    CURRENT = name;
+    const info = WORKFLOWS.find(w => w.name === name);
+    el("capDesc").textContent = info ? info.description : "";
+    const pp = primaryParam(SCHEMA);
+    const pdef = SCHEMA.inject.find(p => p.name === pp);
+    el("promptLabel").textContent = pp ? (pp.replace(/_/g," ").replace(/\b\w/g,c=>c.toUpperCase())) : "Prompt";
+    el("prompt").placeholder = pdef && pdef.description ? pdef.description : "Describe what you want...";
+    buildAdvanced();
+  }
+
+  function buildAdvanced() {
+    const pp = primaryParam(SCHEMA);
+    const rows = SCHEMA.inject.filter(p => p.name !== pp).map(p => fieldHtml(p)).join("");
+    el("advFields").innerHTML = rows || `<p class="text-xs text-slate-600">No extra settings.</p>`;
+  }
+
+  function fieldHtml(p) {
+    const label = `<label class="text-xs font-medium text-slate-400">${p.name.replace(/_/g," ")}</label>`;
+    const base = "mt-1 w-full bg-slate-800/60 border border-slate-700 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-violet-500";
+    let input;
+    if (p.type === "enum") {
+      input = `<input data-p="${p.name}" class="${base}" value="${p.default ?? ""}" placeholder="${p.default ?? ""}">`;
+    } else if (p.type === "int" || p.type === "float" || p.type === "seed") {
+      const ph = p.type === "seed" ? "-1 = random" : (p.default ?? "");
+      input = `<input data-p="${p.name}" data-t="num" type="number" class="${base}" placeholder="${ph}" ${p.default!=null?`value="${p.default}"`:""}>`;
+    } else if (p.type === "bool") {
+      input = `<input data-p="${p.name}" data-t="bool" type="checkbox" ${p.default?"checked":""} class="mt-1 accent-violet-500">`;
+    } else {
+      input = `<input data-p="${p.name}" class="${base}" placeholder="${p.default ?? ""}" ${p.default?`value="${p.default}"`:""}>`;
+    }
+    return `<div>${label}${input}${p.description?`<p class="text-[11px] text-slate-600 mt-0.5">${p.description}</p>`:""}</div>`;
+  }
+
+  function collectParams() {
+    const params = {};
+    const pp = primaryParam(SCHEMA);
+    if (pp) params[pp] = el("prompt").value;
+    el("advFields").querySelectorAll("[data-p]").forEach(i => {
+      const k = i.dataset.p;
+      if (i.dataset.t === "bool") { params[k] = i.checked; return; }
+      if (i.value === "") return;
+      params[k] = i.dataset.t === "num" ? Number(i.value) : i.value;
+    });
+    return params;
+  }
+
+  async function generate() {
+    el("genMsg").textContent = "";
+    el("genBtn").disabled = true; el("genBtn").textContent = "Queuing...";
+    try {
+      const res = await api("/api/generate", {
+        method: "POST", headers: {"Content-Type":"application/json"},
+        body: JSON.stringify({ name: CURRENT, params: collectParams(), session_id: CUR_SESSION })
+      });
+      streamRun(res.run_id);
+    } catch (e) {
+      el("genMsg").textContent = e.message;
+      resetGenBtn();
+    }
+  }
+
+  function streamRun(runId) {
+    const card = document.createElement("div");
+    card.className = "my-3 p-3 rounded-lg bg-slate-800/40 border border-slate-700 text-sm";
+    card.innerHTML = `<div class="flex justify-between"><span class="pulsing">Generating…</span><span id="pct-${runId}" class="text-slate-400"></span></div>
+      <div class="h-1.5 bg-slate-700 rounded mt-2 overflow-hidden"><div id="bar-${runId}" class="h-full bg-violet-500 transition-all" style="width:0%"></div></div>
+      <div id="node-${runId}" class="text-[11px] text-slate-500 mt-1"></div>`;
+    el("progress").prepend(card);
+    const es = new EventSource("/api/stream/" + runId);
+    es.onmessage = (ev) => {
+      const st = JSON.parse(ev.data);
+      const pct = st.progress ? st.progress.percent : 0;
+      const bar = el("bar-"+runId), pe = el("pct-"+runId), ne = el("node-"+runId);
+      if (bar) bar.style.width = Math.max(3, pct) + "%";
+      if (pe) pe.textContent = st.state === "running" ? pct + "%" : st.state;
+      if (ne) ne.textContent = st.current_node ? ("node " + st.current_node) : "";
+      if (["completed","failed","cancelled"].includes(st.state)) {
+        es.close();
+        resetGenBtn();
+        card.remove();
+        if (st.state === "completed") { (st.outputs||[]).forEach(o => prependAsset(o, CUR_KIND==="3d"?{}:collectParams())); }
+        else el("genMsg").textContent = st.error || st.state;
+        setTimeout(loadAssets, 600);
+      }
+    };
+    es.onerror = () => { es.close(); resetGenBtn(); };
+  }
+
+  // Asset registry: params/workflow are kept in JS keyed by a card id, NEVER embedded
+  // in HTML. This makes Variation/Tweak immune to prompts containing quotes/apostrophes.
+  let ASSET_REG = {}, ASSET_N = 0;
+  const esc = (s) => String(s).replace(/[&<>"]/g,
+    c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+  function mediaHtml(o) {
+    const url = o.url.startsWith("http") ? o.url : COMFY + o.url;
+    if (o.type === "audio")
+      return `<div class="bg-slate-900 flex items-center gap-3 p-3">
+        <span class="text-2xl shrink-0">🎵</span><audio controls src="${esc(url)}" class="w-full"></audio></div>`;
+    const cls = "w-full h-auto block bg-slate-900 cursor-zoom-in";
+    if (/\.(mp4|webm)$/i.test(url))
+      return `<video src="${esc(url)}" muted loop autoplay playsinline data-act="open" class="${cls}"></video>`;
+    return `<img src="${esc(url)}" loading="lazy" data-act="open" class="${cls}">`;
+  }
+
+  function cardHtml(o, params, workflow, runId) {
+    const url = o.url.startsWith("http") ? o.url : COMFY + o.url;
+    const id = "a" + (ASSET_N++);
+    ASSET_REG[id] = { params: params || {}, workflow: workflow || CURRENT, output: o, run: runId || "", _id: id };
+    const cap = (params && (params.positive_prompt || params.tags || params.instruction || params.text || params.prompt)) || workflow || "";
+    const primary = o.type === "image"
+      ? `<button data-act="edit" class="text-emerald-400 hover:text-emerald-300" title="Edit by instruction (Kontext)">✦ Edit</button>
+         <button data-act="animate" class="text-sky-400 hover:text-sky-300" title="Turn this image into a video">▶ Animate</button>` : "";
+    return `<div class="relative rounded-lg bg-slate-800/40 border border-slate-700/60 overflow-hidden group break-inside-avoid mb-4" data-asset="${id}" data-run="${esc(runId||"")}">
+      <input type="checkbox" class="sel-box absolute top-2 left-2 z-10 w-4 h-4 accent-violet-500 opacity-0 group-hover:opacity-100 checked:opacity-100 cursor-pointer" title="Select for bulk delete">
+      <button data-act="open" class="absolute top-2 right-2 z-10 opacity-0 group-hover:opacity-100 bg-slate-900/70 hover:bg-slate-900 rounded px-1.5 py-0.5 text-[11px] text-slate-200" title="Open full view + all tools">⛶ Open</button>
+      ${mediaHtml(o)}
+      <div class="p-2.5">
+        <p class="text-[11px] text-slate-400 line-clamp-1" title="${esc(cap)}">${esc(cap) || "&nbsp;"}</p>
+        <div class="flex items-center gap-2.5 mt-1.5 text-[11px]">
+          <button data-act="vary" class="text-violet-400 hover:text-violet-300" title="New variation (new seed)">↻ Vary</button>
+          ${primary}
+          <button data-act="open" class="text-slate-200 hover:text-white font-semibold" title="Open full view + all tools (Replace BG, Relight, Upscale, Inpaint, Multi-view, Lip-sync…)">⋯ More</button>
+          <a class="text-slate-400 hover:text-slate-200 ml-auto" href="${esc(url)}" download title="Download">⭳</a>
+          <button data-act="del-one" class="text-rose-400 hover:text-rose-300" title="Delete this creation">🗑</button>
+        </div>
+      </div></div>`;
+  }
+
+  async function animateAsset(reg) {
+    const o = reg.output;
+    try {
+      const res = await api("/api/animate", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ filename: o.filename, subfolder: o.subfolder || "", session_id: CUR_SESSION })
+      });
+      streamRun(res.run_id);
+    } catch (e) { el("genMsg").textContent = e.message; }
+  }
+
+  function startEdit(card, reg) {
+    if (card.querySelector(".edit-box")) return;
+    const box = document.createElement("div");
+    box.className = "edit-box px-2.5 pb-2.5";
+    box.innerHTML = `<input placeholder="Describe the edit, then Enter (e.g. make it red)…"
+      class="w-full bg-slate-900 border border-emerald-500 rounded px-2 py-1 text-[12px] text-slate-100">`;
+    card.appendChild(box);
+    const inp = box.querySelector("input"); inp.focus();
+    inp.addEventListener("keydown", async (ev) => {
+      if (ev.key === "Escape") { box.remove(); return; }
+      if (ev.key !== "Enter" || !inp.value.trim()) return;
+      const instruction = inp.value.trim(); const o = reg.output; box.remove();
+      try {
+        const res = await api("/api/edit", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ filename: o.filename, subfolder: o.subfolder || "", instruction, session_id: CUR_SESSION })
+        });
+        streamRun(res.run_id);
+      } catch (e) { el("genMsg").textContent = e.message; }
+    });
+  }
+
+  // Kontext preset (Replace BG, Camera Angle, …): inline input + optional quick-pick
+  // chips, both firing /api/edit/preset. `options` = [{v,l}] for one-click choices.
+  function startPreset(card, reg, preset, placeholder, options) {
+    if (card.querySelector(".edit-box")) return;
+    const box = document.createElement("div");
+    box.className = "edit-box px-2.5 pb-2.5";
+    const chips = (options || []).map(o =>
+      `<button data-chip="${esc(o.v)}" class="text-[11px] bg-slate-700 hover:bg-slate-600 rounded px-1.5 py-0.5">${esc(o.l)}</button>`).join("");
+    box.innerHTML = `${chips ? `<div class="flex flex-wrap gap-1 mb-1">${chips}</div>` : ""}
+      <input placeholder="${esc(placeholder)}"
+        class="w-full bg-slate-900 border border-amber-500 rounded px-2 py-1 text-[12px] text-slate-100">`;
+    card.appendChild(box);
+    const inp = box.querySelector("input"); inp.focus();
+    const fire = async (arg) => {
+      const o = reg.output; box.remove();
+      try {
+        const res = await api("/api/edit/preset", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ filename: o.filename, subfolder: o.subfolder || "", preset, arg, session_id: CUR_SESSION })
+        });
+        streamRun(res.run_id);
+      } catch (e) { el("genMsg").textContent = e.message; }
+    };
+    box.querySelectorAll("[data-chip]").forEach(c => c.addEventListener("click", () => fire(c.dataset.chip)));
+    inp.addEventListener("keydown", (ev) => {
+      if (ev.key === "Escape") { box.remove(); return; }
+      if (ev.key === "Enter" && inp.value.trim()) fire(inp.value.trim());
+    });
+  }
+
+  // 🔍 Upscale: pick a factor (4x native / 2x) -> /api/upscale (Real-ESRGAN).
+  function startUpscale(card, reg) {
+    if (card.querySelector(".edit-box")) return;
+    const box = document.createElement("div");
+    box.className = "edit-box px-2.5 pb-2.5 flex items-center gap-1.5";
+    box.innerHTML = `<span class="text-[11px] text-slate-500">Upscale:</span>
+      <button data-us="1.0" class="text-[11px] bg-slate-700 hover:bg-slate-600 rounded px-1.5 py-0.5">4×</button>
+      <button data-us="0.5" class="text-[11px] bg-slate-700 hover:bg-slate-600 rounded px-1.5 py-0.5">2×</button>`;
+    card.appendChild(box);
+    box.querySelectorAll("[data-us]").forEach(b => b.addEventListener("click", async () => {
+      const scale_by = Number(b.dataset.us); const o = reg.output; box.remove();
+      try {
+        const res = await api("/api/upscale", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ filename: o.filename, subfolder: o.subfolder || "", scale_by, session_id: CUR_SESSION })
+        });
+        streamRun(res.run_id);
+      } catch (e) { el("genMsg").textContent = e.message; }
+    }));
+  }
+
+  // 🎨 Inpaint mask editor: paint a mask over the image, regenerate that region.
+  const IP = { reg: null, drawing: false, ctx: null, last: null };
+  function openInpaint(reg) {
+    IP.reg = reg; const o = reg.output;
+    el("ipPrompt").value = "";
+    const img = el("ipImg"), canvas = el("ipCanvas");
+    img.onload = () => {
+      canvas.width = img.naturalWidth; canvas.height = img.naturalHeight;
+      canvas.style.width = img.clientWidth + "px"; canvas.style.height = img.clientHeight + "px";
+      IP.ctx = canvas.getContext("2d");
+      IP.ctx.clearRect(0, 0, canvas.width, canvas.height);
+      IP.ctx.fillStyle = IP.ctx.strokeStyle = "#8b5cf6";   // solid; canvas element is CSS-dimmed
+    };
+    img.src = o.url.startsWith("http") ? o.url : COMFY + o.url;
+    el("inpaintModal").classList.remove("hidden");
+  }
+  function ipPos(ev) {
+    const c = el("ipCanvas"), r = c.getBoundingClientRect();
+    return { x: (ev.clientX - r.left) / r.width * c.width, y: (ev.clientY - r.top) / r.height * c.height };
+  }
+  function ipDraw(ev) {
+    if (!IP.drawing || !IP.ctx) return;
+    const c = el("ipCanvas"), p = ipPos(ev);
+    const brush = Number(el("ipBrush").value) * (c.width / c.getBoundingClientRect().width);
+    IP.ctx.lineWidth = brush; IP.ctx.lineCap = IP.ctx.lineJoin = "round";
+    if (IP.last) { IP.ctx.beginPath(); IP.ctx.moveTo(IP.last.x, IP.last.y); IP.ctx.lineTo(p.x, p.y); IP.ctx.stroke(); }
+    else { IP.ctx.beginPath(); IP.ctx.arc(p.x, p.y, brush / 2, 0, 7); IP.ctx.fill(); }
+    IP.last = p;
+  }
+  el("ipCanvas").addEventListener("pointerdown", e => { IP.drawing = true; IP.last = null; ipDraw(e); });
+  el("ipCanvas").addEventListener("pointermove", ipDraw);
+  window.addEventListener("pointerup", () => { IP.drawing = false; IP.last = null; });
+  el("ipClear").onclick = () => { const c = el("ipCanvas"); IP.ctx && IP.ctx.clearRect(0, 0, c.width, c.height); };
+  el("ipClose").onclick = () => el("inpaintModal").classList.add("hidden");
+  // Export the painted strokes as a WHITE-on-BLACK mask (white = regenerate; read
+  // via the 'red' channel — unambiguous, no alpha-inversion surprises).
+  function ipMaskDataUrl() {
+    const src = el("ipCanvas");
+    const exp = document.createElement("canvas"); exp.width = src.width; exp.height = src.height;
+    const ex = exp.getContext("2d");
+    ex.drawImage(src, 0, 0);                         // strokes (with alpha), transparent elsewhere
+    ex.globalCompositeOperation = "source-in";
+    ex.fillStyle = "#ffffff"; ex.fillRect(0, 0, exp.width, exp.height);   // recolor strokes white
+    ex.globalCompositeOperation = "destination-over";
+    ex.fillStyle = "#000000"; ex.fillRect(0, 0, exp.width, exp.height);   // black behind
+    return exp.toDataURL("image/png");
+  }
+  el("ipRun").onclick = async () => {
+    const o = IP.reg.output, mask = ipMaskDataUrl(), prompt = el("ipPrompt").value.trim();
+    el("inpaintModal").classList.add("hidden");
+    try {
+      const res = await api("/api/inpaint", { method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ filename: o.filename, subfolder: o.subfolder || "", mask, prompt, session_id: CUR_SESSION }) });
+      streamRun(res.run_id);
+    } catch (e) { el("genMsg").textContent = e.message; }
+  };
+
+  // 🔄 Turnaround: pick 4 / 6 views -> /api/turnaround -> stream each rotated view.
+  function startTurnaround(card, reg) {
+    if (card.querySelector(".edit-box")) return;
+    const box = document.createElement("div");
+    box.className = "edit-box px-2.5 pb-2.5 flex items-center gap-1.5";
+    box.innerHTML = `<span class="text-[11px] text-slate-500">Turnaround:</span>
+      <button data-tv="4" class="text-[11px] bg-slate-700 hover:bg-slate-600 rounded px-1.5 py-0.5">4 views</button>
+      <button data-tv="6" class="text-[11px] bg-slate-700 hover:bg-slate-600 rounded px-1.5 py-0.5">6 views</button>
+      <button data-tv="9" class="text-[11px] bg-slate-700 hover:bg-slate-600 rounded px-1.5 py-0.5">9 views</button>`;
+    card.appendChild(box);
+    box.querySelectorAll("[data-tv]").forEach(b => b.addEventListener("click", async () => {
+      const views = Number(b.dataset.tv); const o = reg.output; box.remove();
+      try {
+        const res = await api("/api/turnaround", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ filename: o.filename, subfolder: o.subfolder || "", views, session_id: CUR_SESSION })
+        });
+        (res.run_ids || []).forEach(streamRun);
+      } catch (e) { el("genMsg").textContent = e.message; }
+    }));
+  }
+
+  // 🗣 Lip-sync: attach an audio clip to a portrait -> talking video (InfiniteTalk).
+  function startLipsync(card, reg) {
+    if (card.querySelector(".edit-box")) return;
+    const box = document.createElement("div");
+    box.className = "edit-box px-2.5 pb-2.5 space-y-1.5";
+    box.innerHTML = `<input type="file" accept="audio/*" class="ls-aud w-full text-[11px] text-slate-400 file:mr-2 file:rounded file:border-0 file:bg-slate-700 file:px-2 file:py-0.5 file:text-slate-200">
+      <div class="flex gap-1.5">
+        <input class="ls-look flex-1 bg-slate-900 border border-pink-500/60 rounded px-2 py-1 text-[12px] text-slate-100" placeholder="look (optional)">
+        <button class="ls-go bg-pink-600 hover:bg-pink-500 rounded px-3 py-1 text-[12px] font-semibold">Lip-sync</button>
+      </div>`;
+    card.appendChild(box);
+    box.querySelector(".ls-go").addEventListener("click", async () => {
+      const f = box.querySelector(".ls-aud").files[0];
+      if (!f) { el("genMsg").textContent = "Choose an audio clip."; return; }
+      const o = reg.output, look = box.querySelector(".ls-look").value.trim(); box.remove();
+      const fd = new FormData();
+      fd.append("audio", f); fd.append("filename", o.filename);
+      fd.append("subfolder", o.subfolder || ""); fd.append("prompt", look);
+      fd.append("session_id", CUR_SESSION || "");
+      try {
+        const res = await api("/api/lipsync", { method: "POST", body: fd });
+        streamRun(res.run_id);
+      } catch (e) { el("genMsg").textContent = e.message; }
+    });
+  }
+
+  function triggerAction(act, card, reg) {
+    if (act === "open") openDetail(reg);
+    else if (act === "vary") vary(reg.params, reg.workflow);
+    else if (act === "tweak") tweak(reg.params, reg.workflow);
+    else if (act === "edit") startEdit(card, reg);
+    else if (act === "replace-bg") startPreset(card, reg, "replace_background",
+      "New background, then Enter (e.g. a sunny tropical beach at golden hour)…");
+    else if (act === "camera-angle") startPreset(card, reg, "camera_angle",
+      "Camera angle, then Enter (e.g. worm's-eye)…",
+      [{v:"front",l:"Front"},{v:"left",l:"¾ Left"},{v:"right",l:"¾ Right"},{v:"low",l:"Low"},
+       {v:"high",l:"High"},{v:"profile",l:"Profile"},{v:"behind",l:"Behind"}]);
+    else if (act === "relight") startPreset(card, reg, "relight",
+      "Lighting, then Enter (e.g. moody blue hour)…",
+      [{v:"warm golden-hour sunlight",l:"Golden"},{v:"cool blue-hour twilight",l:"Blue hr"},
+       {v:"soft studio softbox lighting",l:"Studio"},{v:"dramatic rim light on a dark background",l:"Rim"},
+       {v:"colourful neon lighting",l:"Neon"},{v:"warm flickering candlelight",l:"Candle"}]);
+    else if (act === "upscale") startUpscale(card, reg);
+    else if (act === "inpaint") openInpaint(reg);
+    else if (act === "turnaround") startTurnaround(card, reg);
+    else if (act === "lipsync") startLipsync(card, reg);
+    else if (act === "animate") animateAsset(reg);
+    else if (act === "del-one") deleteRuns([reg.run]);
+  }
+
+  el("gallery").addEventListener("click", (e) => {
+    const btn = e.target.closest("[data-act]");
+    const card = e.target.closest("[data-asset]");
+    if (!btn || !card) return;
+    const reg = ASSET_REG[card.dataset.asset];
+    if (reg) triggerAction(btn.dataset.act, card, reg);
+  });
+
+  // ---- Detail / lightbox: open a creation full-size with prompt + all tools ----
+  const DT_TOOLS = {
+    image: [["edit","✦ Edit by prompt"],["replace-bg","⤢ Replace background"],["camera-angle","🎥 Camera angle"],
+            ["relight","💡 Relight"],["upscale","🔍 Upscale (4×/2×)"],["inpaint","🎨 Inpaint region"],
+            ["turnaround","🔄 Multi-view"],["lipsync","🗣 Lip-sync"],["animate","▶ Animate → video"],
+            ["to-storyboard","🎬 → Storyboard"],["vary","↻ Vary"],["tweak","✎ Reuse settings"]],
+    video: [["tomp4","⬇ Get MP4"],["vary","↻ Vary"],["tweak","✎ Reuse settings"]],
+    audio: [["vary","↻ Vary"],["tweak","✎ Reuse settings"]],
+  };
+  async function sendToStoryboard(reg) {
+    const o = reg.output;
+    try {
+      const r = await api("/api/to-storyboard", { method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ filename: o.filename, subfolder: o.subfolder || "", title: "" }) });
+      el("detailModal").classList.add("hidden");
+      setMode("storyboard");
+      await sbLoadList(r.board_id);
+      sbOpen(r.board_id);
+    } catch (e) { el("genMsg").textContent = e.message; }
+  }
+  async function getMp4(reg) {
+    const o = reg.output;
+    try {
+      const r = await api("/api/tomp4", { method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ filename: o.filename, subfolder: o.subfolder || "", session_id: CUR_SESSION }) });
+      window.open(r.url.startsWith("http") ? r.url : COMFY + r.url, "_blank");
+      if (r.converted) setTimeout(loadAssets, 500);
+    } catch (e) { el("genMsg").textContent = e.message; }
+  }
+  const DT_INMODAL = ["edit","replace-bg","camera-angle","relight","upscale","turnaround","lipsync"];
+  function openDetail(reg) {
+    const o = reg.output, p = reg.params || {};
+    const url = o.url.startsWith("http") ? o.url : COMFY + o.url;
+    el("dtMedia").innerHTML = o.type === "audio" ? `<audio controls src="${esc(url)}" class="w-full">`
+      : /\.(mp4|webm)$/i.test(url) ? `<video src="${esc(url)}" controls autoplay loop class="max-h-[74vh] max-w-full rounded">`
+      : `<img src="${esc(url)}" class="max-h-[74vh] max-w-full rounded">`;
+    el("dtPrompt").textContent = p.positive_prompt || p.tags || p.instruction || p.text || p.prompt || "(no prompt)";
+    el("dtMeta").textContent = [reg.workflow, (p.seed != null && p.seed >= 0) ? `seed ${p.seed}` : "", o.filename].filter(Boolean).join("   ·   ");
+    el("dtDownload").href = url;
+    el("dtActionArea").innerHTML = "";
+    el("dtTools").innerHTML = (DT_TOOLS[o.type] || DT_TOOLS.image).map(([a, l]) =>
+      `<button data-dact="${a}" class="text-left text-xs bg-slate-800 hover:bg-slate-700 rounded px-2.5 py-1.5">${l}</button>`).join("");
+    el("dtTools").querySelectorAll("[data-dact]").forEach(b => b.onclick = () => {
+      const act = b.dataset.dact;
+      if (act === "tomp4") { el("detailModal").classList.add("hidden"); getMp4(reg); }
+      else if (act === "to-storyboard") sendToStoryboard(reg);
+      else if (DT_INMODAL.includes(act)) { el("dtActionArea").innerHTML = ""; triggerAction(act, el("dtActionArea"), reg); }
+      else { el("detailModal").classList.add("hidden"); triggerAction(act, null, reg); }
+    });
+    el("dtDelete").onclick = () => { el("detailModal").classList.add("hidden"); deleteRuns([reg.run]); };
+    el("detailModal").classList.remove("hidden");
+  }
+  el("dtCopy").onclick = () => {
+    navigator.clipboard.writeText(el("dtPrompt").textContent).then(() => {
+      el("dtCopy").textContent = "✓ Copied"; setTimeout(() => el("dtCopy").textContent = "⧉ Copy", 1200);
+    });
+  };
+  el("dtClose").onclick = () => el("detailModal").classList.add("hidden");
+  el("detailModal").addEventListener("click", e => { if (e.target.id === "detailModal") el("detailModal").classList.add("hidden"); });
+
+  // ---- Delete creations (single + bulk) ----
+  function updateSelUI() {
+    const n = document.querySelectorAll("#gallery .sel-box:checked").length;
+    el("selInfo").textContent = n ? `${n} selected` : "";
+    el("delSelBtn").classList.toggle("hidden", n === 0);
+  }
+  async function deleteRuns(ids) {
+    ids = [...new Set(ids.filter(Boolean))];
+    if (!ids.length) { el("genMsg").textContent = "Nothing to delete."; return; }
+    if (!confirm(`Delete ${ids.length} creation${ids.length>1?"s":""}? This removes ${ids.length>1?"them":"it"} from the gallery.`)) return;
+    try {
+      if (ids.length === 1) await api("/api/assets/" + encodeURIComponent(ids[0]), { method:"DELETE" });
+      else await api("/api/assets/delete", { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ ids }) });
+    } catch (e) { el("genMsg").textContent = e.message; return; }
+    await loadAssets();
+  }
+  el("gallery").addEventListener("change", (e) => {
+    if (e.target.classList && e.target.classList.contains("sel-box")) updateSelUI();
+  });
+  el("selAllBtn").onclick = () => {
+    const boxes = [...document.querySelectorAll("#gallery .sel-box")];
+    const turnOn = boxes.some(b => !b.checked);
+    boxes.forEach(b => b.checked = turnOn);
+    updateSelUI();
+  };
+  el("delSelBtn").onclick = () => deleteRuns(
+    [...document.querySelectorAll("#gallery .sel-box:checked")]
+      .map(b => b.closest("[data-run]")?.dataset.run));
+
+  function prependAsset(o, params) {
+    const div = document.createElement("div");
+    div.innerHTML = cardHtml(o, params, CURRENT);
+    el("gallery").prepend(div.firstElementChild);
+  }
+
+  // ----- Sessions -----
+  async function loadSessions() {
+    const data = await api("/api/sessions");
+    const items = [{ id: null, name: "All creations" }, ...data.sessions];
+    el("sessionList").innerHTML = items.map(sessionRow).join("");
+  }
+  function sessionRow(s) {
+    const active = (s.id || null) === CUR_SESSION;
+    const cls = "group flex items-center gap-1 px-2 py-1.5 rounded-md cursor-pointer " +
+      (active ? "bg-violet-600/20 text-violet-200" : "text-slate-400 hover:bg-slate-800/50");
+    const ctrls = s.id ? `<button data-sx="rename" class="opacity-0 group-hover:opacity-100 text-slate-500 hover:text-slate-200">✎</button>
+      <button data-sx="del" class="opacity-0 group-hover:opacity-100 text-slate-500 hover:text-rose-400">×</button>` : "";
+    return `<div class="${cls}" data-sid="${s.id || ''}"><span data-sx="pick" class="flex-1 truncate">${esc(s.name)}</span>${ctrls}</div>`;
+  }
+  function selectSession(sid) { CUR_SESSION = sid; loadSessions(); loadAssets(); }
+  async function newSession() {
+    const s = await api("/api/sessions", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: "New Session" }) });
+    CUR_SESSION = s.id; await loadSessions(); loadAssets();
+    const row = el("sessionList").querySelector(`[data-sid="${s.id}"]`);
+    if (row) startRename(row, s.id);
+  }
+  function startRename(row, sid) {
+    const span = row.querySelector('[data-sx="pick"]'); if (!span) return;
+    const cur = span.textContent;
+    const inp = document.createElement("input");
+    inp.value = cur; inp.className = "flex-1 bg-slate-900 border border-violet-500 rounded px-1 text-sm text-slate-100 min-w-0";
+    span.replaceWith(inp); inp.focus(); inp.select();
+    let done = false;
+    const finish = async () => {
+      if (done) return; done = true;
+      const name = inp.value.trim() || cur;
+      await api("/api/sessions/" + sid, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name }) });
+      await loadSessions();
+    };
+    inp.addEventListener("keydown", (ev) => { if (ev.key === "Enter") inp.blur(); });
+    inp.addEventListener("blur", finish, { once: true });
+  }
+  el("sessionList").addEventListener("click", async (e) => {
+    const row = e.target.closest("[data-sid]"); if (!row) return;
+    const sid = row.dataset.sid || null;
+    const act = e.target.closest("[data-sx]") ? e.target.closest("[data-sx]").dataset.sx : null;
+    if (act === "del") { await api("/api/sessions/" + sid, { method: "DELETE" }); if (CUR_SESSION === sid) CUR_SESSION = null; await loadSessions(); loadAssets(); return; }
+    if (act === "rename") { startRename(row, sid); return; }
+    selectSession(sid);
+  });
+  el("newSessionBtn").onclick = newSession;
+
+  let GALLERY_ITEMS = [], GAL_SEARCH = "", GAL_TYPE = "all", GAL_SORT = "new";
+  async function loadAssets() {
+    const data = await api("/api/assets" + (CUR_SESSION ? "?session_id=" + CUR_SESSION : ""));
+    GALLERY_ITEMS = [];
+    data.assets.forEach(m => (m.outputs || []).forEach(o => GALLERY_ITEMS.push({ o, m })));
+    renderGallery();
+  }
+  function renderGallery() {
+    ASSET_REG = {}; ASSET_N = 0;
+    const q = GAL_SEARCH.trim().toLowerCase();
+    let items = GALLERY_ITEMS.filter(({ o, m }) => {
+      if (GAL_TYPE !== "all" && o.type !== GAL_TYPE) return false;
+      if (!q) return true;
+      const p = m.params || {};
+      const hay = [p.positive_prompt, p.tags, p.instruction, p.text, p.prompt, m.workflow, o.filename]
+        .filter(Boolean).join(" ").toLowerCase();
+      return hay.includes(q);
+    });
+    items.sort((a, b) => GAL_SORT === "old"
+      ? (a.m.created_at || 0) - (b.m.created_at || 0)
+      : (b.m.created_at || 0) - (a.m.created_at || 0));
+    el("gallery").innerHTML = items.map(({ o, m }) => cardHtml(o, m.params, m.workflow, m.run_id)).join("")
+      || `<p class="text-slate-600 text-sm">${GALLERY_ITEMS.length ? "No creations match — try clearing search/filter." : "No creations yet — make something!"}</p>`;
+    el("galCount").textContent = !GALLERY_ITEMS.length ? ""
+      : items.length === GALLERY_ITEMS.length ? `${items.length}` : `${items.length} of ${GALLERY_ITEMS.length}`;
+    updateSelUI();
+  }
+  el("galSearch").addEventListener("input", e => { GAL_SEARCH = e.target.value; renderGallery(); });
+  el("galType").addEventListener("change", e => { GAL_TYPE = e.target.value; renderGallery(); });
+  el("galSort").addEventListener("change", e => { GAL_SORT = e.target.value; renderGallery(); });
+
+  function vary(params, workflow) {
+    selectKindForWorkflow(workflow);
+    setTimeout(() => { applyParams(params); const s=el("advFields").querySelector('[data-p="seed"]'); if(s) s.value=""; generate(); }, 150);
+  }
+  function tweak(params, workflow) {
+    selectKindForWorkflow(workflow);
+    setTimeout(() => applyParams(params), 150);
+  }
+  function selectKindForWorkflow(workflow) {
+    const wf = WORKFLOWS.find(w => w.name === workflow); if (!wf) return;
+    if (wf.kind !== CUR_KIND) selectKind(wf.kind);
+    selectCap(workflow);
+  }
+  function applyParams(params) {
+    const pp = primaryParam(SCHEMA);
+    if (pp && params[pp] != null) el("prompt").value = params[pp];
+    el("advFields").querySelectorAll("[data-p]").forEach(i => {
+      const k = i.dataset.p; if (params[k] == null || k === pp) return;
+      if (i.dataset.t === "bool") i.checked = !!params[k]; else i.value = params[k];
+    });
+  }
+
+  el("capSelect").onchange = (e) => selectCap(e.target.value);
+  el("genBtn").onclick = () => (CUR_KIND === "3d" ? blenderAnimate()
+    : CUR_KIND === "motion" ? motionSync()
+    : CUR_KIND === "voice" ? voiceOver()
+    : CUR_KIND === "director" ? directFilm() : generate());
+  el("dirAssistBtn").onclick = () => assistPrompt("video", el("dirPremise"), el("dirAssistBtn"));
+
+  // ✨ AI prompt-assist — write/improve the prompt for the current medium (local LLM).
+  async function assistPrompt(kind, inp, btn) {
+    const old = btn.textContent; btn.disabled = true; btn.textContent = "✨ thinking…";
+    el("genMsg").textContent = "";
+    try {
+      const r = await api("/api/assist", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ kind, prompt: inp.value.trim() })
+      });
+      if (r.prompt) inp.value = r.prompt;
+    } catch (e) { el("genMsg").textContent = e.message; }
+    finally { btn.disabled = false; btn.textContent = old; }
+  }
+  el("assistBtn").onclick = () => assistPrompt(CUR_KIND, el("prompt"), el("assistBtn"));
+  el("blAssistBtn").onclick = () => assistPrompt("3d", el("blPrompt"), el("blAssistBtn"));
+  el("msAssistBtn").onclick = () => assistPrompt("video", el("msPrompt"), el("msAssistBtn"));
+  el("refreshBtn").onclick = loadAssets;
+  el("advToggle").onclick = () => {
+    const f = el("advFields"); f.classList.toggle("hidden");
+    el("advCaret").textContent = f.classList.contains("hidden") ? "▸" : "▾";
+  };
+
+  // ============================ STORYBOARD ============================
+  let SB_BOARD = null, SB_LIST = [], SB_MODE = "studio", SB_LOADED = false;
+  const BUCKETS = [["style","Style"],["character","Characters"],["environment","Environments"],["object","Objects"]];
+  const KOKORO_VOICES = {
+    am_michael:"US male · warm", am_adam:"US male · young", bm_george:"UK male · refined",
+    bm_lewis:"UK male · deep", af_heart:"US female · warm", af_bella:"US female · lively",
+    bf_emma:"UK female · calm", bf_isabella:"UK female · crisp" };
+
+  function sbMsg(m) { el("sbMsg").textContent = m || ""; }
+  function sbUrl(ref) { if (!ref || !ref.url) return ""; return ref.url.startsWith("http") ? ref.url : COMFY + ref.url; }
+  function sbMediaHtml(ref, cls) {
+    const url = sbUrl(ref); if (!url) return "";
+    if (ref.type === "audio") return `<audio controls src="${esc(url)}" class="w-full"></audio>`;
+    // Detect video by asset type / filename (ComfyUI /view URLs end in query params, not .mp4).
+    if (ref.type === "video" || /\.(mp4|webm)/i.test(ref.filename || ""))
+      return `<video src="${esc(url)}" muted loop autoplay playsinline class="${cls}"></video>`;
+    return `<img src="${esc(url)}" loading="lazy" class="${cls}">`;
+  }
+
+  function setMode(mode) {
+    SB_MODE = mode;
+    const isStudio = mode === "studio";
+    el("studioView").classList.toggle("hidden", !isStudio);
+    el("storyboardView").classList.toggle("hidden", isStudio);
+    // The Sessions rail only makes sense in Studio; swap it for a hint in Storyboard.
+    el("sessionsPanel").classList.toggle("hidden", !isStudio);
+    el("navBoardsHint").classList.toggle("hidden", isStudio);
+    const on = "flex-1 rounded-md py-1.5 text-sm font-medium bg-violet-600 text-white";
+    const off = "flex-1 rounded-md py-1.5 text-sm font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-800/50";
+    el("modeStudio").className = isStudio ? on : off;
+    el("modeStoryboard").className = mode === "storyboard" ? on : off;
+    if (mode === "storyboard" && !SB_LOADED) { SB_LOADED = true; sbLoadList(); }
+  }
+  el("modeStudio").onclick = () => setMode("studio");
+  el("modeStoryboard").onclick = () => setMode("storyboard");
+
+  async function sbLoadList(selectId) {
+    try {
+      const data = await api("/api/storyboards");
+      SB_LIST = data.storyboards || [];
+    } catch (e) { sbMsg(e.message); return; }
+    const opts = SB_LIST.map(s =>
+      `<option value="${esc(s.id)}">${esc(s.title || "Untitled")}</option>`).join("");
+    el("sbPicker").innerHTML = `<option value="">— select a board —</option>` + opts;
+    el("sbEmpty").classList.toggle("hidden", SB_LIST.length > 0 || !!SB_BOARD);
+    const want = selectId || (SB_BOARD && SB_BOARD.id);
+    if (want && SB_LIST.some(s => s.id === want)) { el("sbPicker").value = want; }
+    else if (want) { el("sbPicker").value = ""; }
+  }
+
+  // Use-case templates for the New-board picker (loaded once).
+  let SB_TEMPLATES = [];
+  async function sbLoadTemplates() {
+    if (SB_TEMPLATES.length) return;
+    try { SB_TEMPLATES = (await api("/api/storyboards/templates")).templates || []; }
+    catch (e) { return; }
+    el("sbTemplate").innerHTML = `<option value="">— None (blank) —</option>` +
+      SB_TEMPLATES.map(t => `<option value="${esc(t.key)}">${esc(t.label)} (${esc(t.aspect)})</option>`).join("");
+  }
+  el("sbTemplate") && (el("sbTemplate").onchange = (e) => {
+    const t = SB_TEMPLATES.find(x => x.key === e.target.value);
+    el("sbTemplateDesc").textContent = t ? t.description : "";
+    el("sbBlankBtn").textContent = t ? "Create from template" : "Create blank board";
+  });
+
+  el("sbPicker").onchange = (e) => {
+    const id = e.target.value;
+    if (id) sbOpen(id);
+    else { SB_BOARD = null; sbRender(); }
+  };
+  el("sbNewBtn").onclick = () => {
+    SB_BOARD = null; el("sbPicker").value = "";
+    el("sbBoard").innerHTML = ""; el("sbEmpty").classList.add("hidden");
+    el("sbDeleteBtn").classList.add("hidden"); sbSetStatus();
+    el("sbIdea").value = ""; el("sbNewName").value = "";
+    sbLoadTemplates();
+    el("sbTemplate").value = ""; el("sbTemplateDesc").textContent = ""; el("sbBlankBtn").textContent = "Create blank board";
+    el("sbNew").classList.remove("hidden"); el("sbNewName").focus();
+  };
+  // Start blank / from template: create the board, then the user fills panels in.
+  el("sbBlankBtn").onclick = async () => {
+    const title = el("sbNewName").value.trim();
+    const template = el("sbTemplate").value;
+    if (!title && !template) { sbMsg("Name your board or pick a template first."); el("sbNewName").focus(); return; }
+    const btn = el("sbBlankBtn"); const label = btn.textContent; btn.disabled = true; btn.textContent = "Creating…"; sbMsg("");
+    try {
+      const b = await api("/api/storyboards/blank", { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ title, template }) });
+      el("sbNew").classList.add("hidden");
+      SB_BOARD = b; await sbLoadList(b.id); sbRender();
+    } catch (e) { sbMsg(e.message); }
+    finally { btn.disabled = false; btn.textContent = label; }
+  };
+  el("sbDraftBtn").onclick = async () => {
+    const idea = el("sbIdea").value.trim();
+    if (!idea) { sbMsg("Describe your idea first."); return; }
+    const name = el("sbNewName").value.trim();
+    const template = el("sbTemplate").value;
+    const btn = el("sbDraftBtn"); btn.disabled = true; btn.textContent = "Drafting… (~25s)"; sbMsg("");
+    try {
+      const b = await api("/api/storyboards", { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ idea, template }) });
+      el("sbIdea").value = ""; el("sbNew").classList.add("hidden");
+      SB_BOARD = b;
+      if (name) { SB_BOARD.title = name; await sbPut(); }   // honor a user-typed name over the LLM's
+      await sbLoadList(b.id); sbRender();
+    } catch (e) { sbMsg(e.message); }
+    finally { btn.disabled = false; btn.textContent = "Draft storyboard"; }
+  };
+  el("sbDeleteBtn").onclick = async () => {
+    if (!SB_BOARD) return;
+    if (!confirm("Delete this storyboard?")) return;
+    try { await api("/api/storyboards/" + SB_BOARD.id, { method:"DELETE" }); }
+    catch (e) { sbMsg(e.message); return; }
+    SB_BOARD = null; await sbLoadList(); sbRender();
+  };
+
+  async function sbOpen(id) {
+    sbMsg(""); el("sbNew").classList.add("hidden");
+    el("sbBoard").innerHTML = `<p class="text-slate-500 text-sm pulsing">Loading board…</p>`;
+    try { SB_BOARD = await api("/api/storyboards/" + id); }
+    catch (e) { sbMsg(e.message); return; }
+    sbRender();
+  }
+
+  // Persistence: read every editable field back into SB_BOARD, then PUT.
+  function sbReadInto() {
+    const b = SB_BOARD; if (!b) return;
+    el("sbBoard").querySelectorAll("[data-bf]").forEach(i => { b[i.dataset.bf] = i.value; });
+    el("sbBoard").querySelectorAll("[data-pf]").forEach(i => {
+      const p = (b.panels||[]).find(p => p.id === i.dataset.pid); if (p) p[i.dataset.pf] = i.value;
+    });
+    el("sbBoard").querySelectorAll("[data-af]").forEach(i => {
+      const a = (b.assets||[]).find(a => a.id === i.dataset.aid); if (a) a[i.dataset.af] = i.value;
+    });
+  }
+  async function sbPut() {
+    SB_BOARD = await api("/api/storyboards/" + SB_BOARD.id, {
+      method:"PUT", headers:{"Content-Type":"application/json"}, body: JSON.stringify(SB_BOARD) });
+  }
+  // Save-status pill in the header: hidden (no board) | dirty | saving | saved.
+  function sbSetStatus(state) {
+    const s = el("sbSaveStatus"), btn = el("sbSaveBtn");
+    s.classList.toggle("hidden", !SB_BOARD); btn.classList.toggle("hidden", !SB_BOARD);
+    if (!SB_BOARD) return;
+    const map = { dirty:["● Unsaved changes","text-amber-400"], saving:["Saving…","text-slate-400"],
+                  saved:["✓ Saved","text-emerald-400"] };
+    const [txt, cls] = map[state] || map.saved;
+    s.className = "text-xs ml-auto " + cls; s.textContent = txt;
+    btn.disabled = (state === "saving");
+  }
+  // The one save path (Save button AND blur-autosave) — reads edits back, PUTs, shows status.
+  async function sbSave() {
+    if (!SB_BOARD) return;
+    try { sbReadInto(); sbSetStatus("saving"); await sbPut(); sbSetStatus("saved"); sbLoadList(); }
+    catch (err) { sbMsg(err.message); sbSetStatus("dirty"); }
+  }
+  el("sbSaveBtn").onclick = sbSave;
+  // Flag unsaved changes as the user edits any board/panel/asset field.
+  el("sbBoard").addEventListener("input", (e) => {
+    const t = e.target;
+    if (SB_BOARD && t.dataset && (t.dataset.bf || t.dataset.pf || t.dataset.af)) sbSetStatus("dirty");
+  });
+  // Commit text edits on blur without re-rendering (preserves caret/focus flow).
+  el("sbBoard").addEventListener("focusout", async (e) => {
+    if (!SB_BOARD) return;
+    const t = e.target;
+    if (!(t.dataset && (t.dataset.bf || t.dataset.pf || t.dataset.af))) return;
+    await sbSave();
+  });
+
+  // Run a slow op tied to a button; re-render with returned board on success.
+  async function sbRunOp(btn, label, fn) {
+    if (SB_BOARD) sbReadInto();
+    const old = btn.innerHTML; btn.disabled = true; btn.innerHTML = label;
+    btn.classList.add("opacity-60","pulsing"); sbMsg("");
+    try {
+      const b = await fn();
+      if (b) { SB_BOARD = b; sbRender(); sbLoadList(); }
+    } catch (e) {
+      sbMsg(e.message);
+      btn.disabled = false; btn.innerHTML = old; btn.classList.remove("opacity-60","pulsing");
+    }
+  }
+
+  // Delegated actions inside the board
+  el("sbBoard").addEventListener("click", (e) => {
+    const btn = e.target.closest("[data-act]"); if (!btn || !SB_BOARD) return;
+    const act = btn.dataset.act;
+    if (act === "refine") {
+      const inp = el("sbRefine"); const msg = inp && inp.value.trim();
+      if (!msg) { sbMsg("Type what to change first."); return; }
+      sbRunOp(btn, "Refining… (~25s)", () => api(`/api/storyboards/${SB_BOARD.id}/chat`,
+        { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ message: msg }) }));
+    } else if (act === "render-asset") {
+      sbRunOp(btn, "Generating…", () => api(`/api/storyboards/${SB_BOARD.id}/assets/${btn.dataset.aid}/render`,
+        { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ model:"txt2img_flux" }) }));
+    } else if (act === "assist-panel") {
+      sbRunOp(btn, "✨ Writing… (~15s)", () => api(`/api/storyboards/${SB_BOARD.id}/panels/${btn.dataset.pid}/assist`,
+        { method:"POST" }));
+    } else if (act === "render-panel") {
+      sbRunOp(btn, "Generating still…", () => api(`/api/storyboards/${SB_BOARD.id}/panels/${btn.dataset.pid}/render`,
+        { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ model:"txt2img_flux" }) }));
+    } else if (act === "animate-panel") {
+      sbRunOp(btn, "Animating… (minutes)", () => api(`/api/storyboards/${SB_BOARD.id}/panels/${btn.dataset.pid}/animate`,
+        { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ backend:"svd" }) }));
+    } else if (act === "talk-panel") {
+      sbRunOp(btn, "Talking… (~few min)", () => api(`/api/storyboards/${SB_BOARD.id}/panels/${btn.dataset.pid}/animate`,
+        { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ backend:"talk" }) }));
+    } else if (act === "assemble") {
+      sbRunOp(btn, "Assembling…", () => api(`/api/storyboards/${SB_BOARD.id}/assemble`,
+        { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ fps:24 }) }));
+    } else if (act === "score") {
+      const ti = el("sbScoreTags"); const tags = ti ? ti.value.trim() : "";
+      sbRunOp(btn, "Composing… (~1-2 min)", () => api(`/api/storyboards/${SB_BOARD.id}/score`,
+        { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ tags, lyrics:"" }) }));
+    } else if (act === "narrate") {
+      const ni = el("sbNarrateText"); const text = ni ? ni.value.trim() : "";
+      sbRunOp(btn, "Narrating… (~1 min)", () => api(`/api/storyboards/${SB_BOARD.id}/narrate`,
+        { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ text }) }));
+    } else if (act === "ambient") {
+      const ai = el("sbAmbientTags"); const tags = ai ? ai.value.trim() : "";
+      sbRunOp(btn, "Sound design… (~1-2 min)", () => api(`/api/storyboards/${SB_BOARD.id}/ambient`,
+        { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ tags }) }));
+    } else if (act === "move") {
+      sbMove(btn.dataset.pid, Number(btn.dataset.dir));
+    } else if (act === "photo") {
+      const fi = btn.parentElement.querySelector('input[type=file]'); if (fi) fi.click();
+    } else if (act === "add-panel") {
+      sbAddPanel();
+    } else if (act === "del-panel") {
+      if (confirm("Delete this panel?")) sbDelPanel(btn.dataset.pid);
+    } else if (act === "add-asset") {
+      const sel = el("sbAddBucket"); sbAddAsset(sel ? sel.value : "character");
+    } else if (act === "del-asset") {
+      if (confirm("Delete this anchor?")) sbDelAsset(btn.dataset.aid);
+    } else if (act === "toggle-asset") {
+      sbToggleAsset(btn.dataset.pid, btn.dataset.aid);
+    } else if (act === "lib-open") {
+      sbLibOpen();
+    } else if (act === "lib-save") {
+      sbRunOp(btn, "★ Saving…", () =>
+        api(`/api/storyboards/${SB_BOARD.id}/assets/${btn.dataset.aid}/save-to-library`, { method:"POST" })
+          .then(r => { sbMsg(`Saved “${r.name||""}” to the library ★`); return null; }));
+    } else if (act === "lib-import") {
+      sbRunOp(btn, "Importing…", () =>
+        api(`/api/storyboards/${SB_BOARD.id}/library/import/${btn.dataset.cid}`, { method:"POST" }));
+    }
+  });
+  // Refine on Enter
+  el("sbBoard").addEventListener("keydown", (e) => {
+    if (e.target.id === "sbRefine" && e.key === "Enter") {
+      e.preventDefault();
+      const btn = el("sbBoard").querySelector('[data-act="refine"]'); if (btn) btn.click();
+    }
+  });
+  // Photo upload (multipart)
+  el("sbBoard").addEventListener("change", async (e) => {
+    const t = e.target;
+    if (!(t.matches && t.matches('input[type=file][data-pid]'))) return;
+    const file = t.files && t.files[0]; if (!file || !SB_BOARD) return;
+    sbReadInto(); sbMsg("");
+    const lbl = el("sbBoard").querySelector(`[data-act="photo"][data-pid="${t.dataset.pid}"]`);
+    if (lbl) { lbl.classList.add("opacity-60","pulsing"); lbl.textContent = "Uploading…"; }
+    try {
+      const fd = new FormData(); fd.append("file", file);
+      const r = await fetch(`/api/storyboards/${SB_BOARD.id}/panels/${t.dataset.pid}/photo`, { method:"POST", body: fd });
+      if (!r.ok) throw new Error((await r.json().catch(()=>({detail:r.statusText}))).detail || r.statusText);
+      SB_BOARD = await r.json(); sbRender();
+    } catch (err) { sbMsg(err.message); if (lbl) { lbl.classList.remove("opacity-60","pulsing"); lbl.textContent = "Upload photo"; } }
+  });
+
+  async function sbMove(pid, dir) {
+    sbReadInto();
+    const ps = SB_BOARD.panels || []; const i = ps.findIndex(p => p.id === pid);
+    const j = i + dir; if (i < 0 || j < 0 || j >= ps.length) return;
+    [ps[i], ps[j]] = [ps[j], ps[i]];
+    try { await sbPut(); sbRender(); sbLoadList(); } catch (e) { sbMsg(e.message); }
+  }
+
+  // Client-side structural edits (add/remove panels & anchors): mutate then persist.
+  const rid = (p) => p + "_" + Math.random().toString(16).slice(2, 10);
+  async function sbMutate(fn) {
+    sbReadInto(); fn(SB_BOARD);
+    try { await sbPut(); sbRender(); sbLoadList(); } catch (e) { sbMsg(e.message); }
+  }
+  const sbAddPanel = () => sbMutate(b => (b.panels = b.panels || []).push({
+    id: rid("panel"), scene:"", image_prompt:"", shot:"", camera:"", mood:"",
+    motion_prompt:"", dialogue:"", asset_ids:[], source:"generated", seed:-1 }));
+  const sbDelPanel = (pid) => sbMutate(b => { b.panels = (b.panels||[]).filter(p => p.id !== pid); });
+  const sbAddAsset = (bucket) => sbMutate(b => (b.assets = b.assets || []).push({
+    id: rid("card"), bucket, name:"", description:"", prompt:"", source:"generated", seed:-1 }));
+  const sbDelAsset = (aid) => sbMutate(b => { b.assets = (b.assets||[]).filter(a => a.id !== aid); });
+  const sbToggleAsset = (pid, aid) => sbMutate(b => {
+    const p = (b.panels||[]).find(p => p.id === pid); if (!p) return;
+    p.asset_ids = p.asset_ids || [];
+    const i = p.asset_ids.indexOf(aid);
+    if (i >= 0) p.asset_ids.splice(i, 1); else p.asset_ids.push(aid);
+  });
+  // Global Characters & Worlds library: reuse saved cards across boards.
+  async function sbLibOpen() {
+    const panel = el("sbLibPanel");
+    if (!panel.classList.contains("hidden")) { panel.classList.add("hidden"); return; }
+    panel.classList.remove("hidden");
+    panel.innerHTML = `<p class="text-xs text-slate-500 pulsing">Loading library…</p>`;
+    try {
+      const { cards } = await api("/api/library");
+      if (!cards.length) {
+        panel.innerHTML = `<p class="text-xs text-slate-500">Library is empty — save an anchor with ★ to reuse it in other boards.</p>`; return;
+      }
+      const have = new Set((SB_BOARD.assets||[]).map(a => a.id));
+      panel.innerHTML = `<div class="text-[11px] uppercase tracking-wide text-amber-400/80 mb-2">★ Characters &amp; Worlds library</div>
+        <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2">${cards.map(c => {
+          const thumb = c.ref ? sbMediaHtml(c.ref, "w-full h-20 object-cover bg-slate-900")
+            : `<div class="w-full h-20 bg-slate-900 flex items-center justify-center text-slate-600 text-[10px]">no ref</div>`;
+          const inB = have.has(c.id);
+          return `<div class="rounded border border-slate-700/60 overflow-hidden bg-slate-800/40">${thumb}
+            <div class="p-1.5"><div class="text-[11px] font-medium truncate">${esc(c.name||"unnamed")}</div>
+            <div class="text-[9px] text-slate-500 uppercase">${esc(c.bucket)}${c.voice?" · 🗣":""}</div>
+            <button data-act="lib-import" data-cid="${esc(c.id)}" ${inB?"disabled":""}
+              class="mt-1 w-full rounded px-1 py-0.5 text-[10px] ${inB?"bg-slate-700 text-slate-500":"bg-amber-600/80 hover:bg-amber-500 text-white"}">${inB?"✓ in board":"Import"}</button>
+            </div></div>`;
+        }).join("")}</div>`;
+    } catch (e) { panel.innerHTML = `<p class="text-xs text-rose-400">${esc(e.message)}</p>`; }
+  }
+
+  const SB_INP = "w-full bg-slate-800/60 border border-slate-700 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-violet-500";
+  const SB_TA  = "w-full bg-slate-800/60 border border-slate-700 rounded px-2 py-1 text-sm resize-none focus:outline-none focus:ring-1 focus:ring-violet-500";
+  const SB_LBL = "text-[11px] font-medium text-slate-500 uppercase tracking-wide";
+
+  function sbAssetCard(a) {
+    const ring = a.bucket === "character" ? " ring-1 ring-violet-500/40" : "";
+    const thumb = a.ref
+      ? sbMediaHtml(a.ref, "w-full h-32 object-contain bg-slate-900")
+      : `<div class="w-full h-32 bg-slate-900 flex items-center justify-center text-slate-600 text-xs">no reference</div>`;
+    return `<div class="relative rounded-lg bg-slate-800/40 border border-slate-700/60 overflow-hidden${ring}">
+      <button data-act="del-asset" data-aid="${esc(a.id)}" title="Delete anchor"
+        class="absolute top-1 right-1 z-10 w-6 h-6 rounded bg-slate-900/70 hover:bg-rose-600 text-slate-300 hover:text-white text-sm leading-none">✕</button>
+      <button data-act="lib-save" data-aid="${esc(a.id)}" title="Save to library (reuse in other boards)"
+        class="absolute top-1 left-1 z-10 w-6 h-6 rounded bg-slate-900/70 hover:bg-amber-500 text-amber-300 hover:text-white text-sm leading-none">★</button>
+      ${thumb}
+      <div class="p-2.5 space-y-1.5">
+        <input data-af="name" data-aid="${esc(a.id)}" value="${esc(a.name||"")}" placeholder="name"
+          class="${SB_INP} font-medium">
+        <textarea data-af="description" data-aid="${esc(a.id)}" rows="2" placeholder="description" class="${SB_TA}">${esc(a.description||"")}</textarea>
+        <textarea data-af="prompt" data-aid="${esc(a.id)}" rows="2" placeholder="prompt" class="${SB_TA} text-[12px] text-slate-300">${esc(a.prompt||"")}</textarea>
+        ${a.bucket === "character" ? `<select data-af="voice" data-aid="${esc(a.id)}" class="${SB_INP} text-[12px]">
+          <option value="">🗣 voice (for talking panels)…</option>
+          ${Object.entries(KOKORO_VOICES).map(([v,d])=>`<option value="${v}" ${a.voice===v?"selected":""}>${esc(d)}</option>`).join("")}
+        </select>` : ""}
+        <button data-act="render-asset" data-aid="${esc(a.id)}"
+          class="w-full bg-slate-700/60 hover:bg-slate-700 rounded px-2 py-1 text-[12px]">${a.ref ? "Regenerate reference" : "Generate reference"}</button>
+      </div>
+    </div>`;
+  }
+
+  function sbPanelCard(p, idx, total, byId, assets) {
+    const ids = p.asset_ids || [];
+    const namesHtml = (assets && assets.length)
+      ? `<div class="mb-2">
+           <div class="${SB_LBL} mb-1">Anchors <span class="normal-case text-slate-600">— tap to link</span></div>
+           <div class="flex flex-wrap gap-1">${assets.map(a => {
+             const on = ids.includes(a.id);
+             return `<button data-act="toggle-asset" data-pid="${esc(p.id)}" data-aid="${esc(a.id)}" title="${esc(a.bucket)}"
+               class="text-[10px] rounded px-1.5 py-0.5 border transition ${on ? "bg-violet-600/30 text-violet-100 border-violet-500/60" : "bg-slate-800/60 text-slate-400 border-slate-700 hover:border-slate-500"}">${on ? "✓ " : ""}${esc(a.name || "unnamed")}</button>`;
+           }).join("")}</div>
+         </div>`
+      : "";
+    const still = p.still
+      ? sbMediaHtml(p.still, "w-full h-48 object-contain bg-slate-900")
+      : `<div class="w-full h-48 bg-slate-900 flex flex-col items-center justify-center text-center px-3 text-slate-600">
+           <span class="text-xs uppercase tracking-wide">${esc(p.shot||"shot")}</span>
+           <span class="text-[11px] mt-1 line-clamp-3">${esc(p.scene||"")}</span></div>`;
+    const video = p.video ? `<div class="mt-2">${sbMediaHtml(p.video, "w-full rounded bg-slate-900")}</div>` : "";
+    const fld = (label, key, val, rows) => rows
+      ? `<div><label class="${SB_LBL}">${label}</label><textarea data-pf="${key}" data-pid="${esc(p.id)}" rows="${rows}" class="${SB_TA} mt-0.5">${esc(val||"")}</textarea></div>`
+      : `<div><label class="${SB_LBL}">${label}</label><input data-pf="${key}" data-pid="${esc(p.id)}" value="${esc(val||"")}" class="${SB_INP} mt-0.5"></div>`;
+    return `<div class="rounded-lg bg-slate-800/40 border border-slate-700/60 overflow-hidden flex flex-col">
+      <div class="flex items-center gap-2 px-2.5 py-1.5 border-b border-slate-700/60">
+        <span class="text-xs font-semibold text-slate-400">#${idx+1}</span>
+        <span class="ml-auto flex gap-1">
+          <button data-act="move" data-pid="${esc(p.id)}" data-dir="-1" ${idx===0?"disabled":""}
+            title="Move panel earlier" class="text-slate-500 hover:text-slate-200 disabled:opacity-30 text-sm leading-none px-1">▲</button>
+          <button data-act="move" data-pid="${esc(p.id)}" data-dir="1" ${idx===total-1?"disabled":""}
+            title="Move panel later" class="text-slate-500 hover:text-slate-200 disabled:opacity-30 text-sm leading-none px-1">▼</button>
+          <button data-act="del-panel" data-pid="${esc(p.id)}" title="Delete panel"
+            class="text-slate-500 hover:text-rose-400 text-sm leading-none px-1 ml-1">✕</button>
+        </span>
+      </div>
+      ${still}
+      ${video}
+      <div class="p-2.5 space-y-1.5 flex-1">
+        ${namesHtml}
+        <button data-act="assist-panel" data-pid="${esc(p.id)}"
+          class="w-full bg-gradient-to-r from-violet-600/80 to-fuchsia-600/80 hover:from-violet-500 hover:to-fuchsia-500 rounded px-2 py-1 text-[12px] font-semibold"
+          title="Let the AI write or improve this panel's scene & prompt for you">✨ ${(p.image_prompt||"").trim() ? "Improve this prompt with AI" : "Write the prompt with AI"}</button>
+        ${fld("Scene","scene",p.scene,2)}
+        ${fld("Image prompt","image_prompt",p.image_prompt,2)}
+        <div class="grid grid-cols-2 gap-1.5">
+          ${fld("Shot","shot",p.shot)}
+          ${fld("Camera","camera",p.camera)}
+        </div>
+        ${fld("Mood","mood",p.mood)}
+        ${fld("Motion prompt","motion_prompt",p.motion_prompt,2)}
+        ${fld("Dialogue (spoken line)","dialogue",p.dialogue,2)}
+        <div class="flex flex-wrap gap-1.5 pt-1">
+          <button data-act="render-panel" data-pid="${esc(p.id)}"
+            class="bg-violet-600 hover:bg-violet-500 rounded px-2 py-1 text-[12px] font-medium">${p.still ? "Regenerate still" : "Generate still"}</button>
+          <span class="relative inline-block">
+            <button data-act="photo" data-pid="${esc(p.id)}" class="bg-slate-700/60 hover:bg-slate-700 rounded px-2 py-1 text-[12px]">Upload photo</button>
+            <input type="file" data-pid="${esc(p.id)}" accept="image/*" class="hidden">
+          </span>
+          <button data-act="animate-panel" data-pid="${esc(p.id)}"
+            class="bg-slate-700/60 hover:bg-slate-700 rounded px-2 py-1 text-[12px]">${p.video ? "Re-animate" : "Animate"}</button>
+          ${(p.dialogue||"").trim() ? `<button data-act="talk-panel" data-pid="${esc(p.id)}" title="Lip-sync the dialogue (InfiniteTalk)"
+            class="bg-slate-700/60 hover:bg-slate-700 rounded px-2 py-1 text-[12px]">🗣 Talk</button>` : ""}
+        </div>
+      </div>
+    </div>`;
+  }
+
+  function sbRender() {
+    const b = SB_BOARD;
+    el("sbDeleteBtn").classList.toggle("hidden", !b);
+    if (!b) {
+      el("sbBoard").innerHTML = "";
+      el("sbEmpty").classList.toggle("hidden", SB_LIST.length > 0 || !el("sbNew").classList.contains("hidden"));
+      sbSetStatus();
+      return;
+    }
+    el("sbEmpty").classList.add("hidden"); el("sbNew").classList.add("hidden");
+    const byId = {}; (b.assets||[]).forEach(a => byId[a.id] = a);
+
+    const assetSections = BUCKETS.map(([key, label]) => {
+      const items = (b.assets||[]).filter(a => a.bucket === key);
+      if (!items.length) return "";
+      return `<div class="mb-4">
+        <h4 class="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-2">${label}</h4>
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">${items.map(sbAssetCard).join("")}</div>
+      </div>`;
+    }).join("");
+
+    const panels = b.panels || [];
+    const panelGrid = panels.length
+      ? `<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">${panels.map((p,i)=>sbPanelCard(p,i,panels.length,byId,b.assets||[])).join("")}</div>`
+      : `<p class="text-slate-600 text-sm">No panels yet.</p>`;
+
+    const assembledUrl = b.assembled ? sbUrl(b.assembled) : "";
+    const assembled = b.assembled
+      ? `<div class="mt-3">
+           <video src="${esc(assembledUrl)}" controls loop playsinline class="w-full max-h-[420px] rounded-lg bg-slate-900"></video>
+           <div class="flex flex-wrap gap-x-3 mt-1">
+             ${b.score ? `<p class="text-[11px] text-slate-500">♪ Scored with audio${b.score.tags?` — ${esc(b.score.tags)}`:""}</p>` : ""}
+             ${b.narration ? `<p class="text-[11px] text-slate-500">🎙 Voiceover added</p>` : ""}
+           </div>
+         </div>`
+      : `<p class="text-xs text-slate-600 mt-2">Animate the panels, then assemble them into a single sequence.</p>`;
+
+    el("sbBoard").innerHTML = `
+      <div class="max-w-6xl mx-auto space-y-6">
+        <!-- header -->
+        <div class="rounded-lg bg-slate-800/30 border border-slate-700/60 p-4 space-y-3">
+          <div>
+            <label class="${SB_LBL}">Board name</label>
+            <input data-bf="title" value="${esc(b.title||"")}" placeholder="Name this storyboard…"
+              class="w-full bg-slate-800/60 border border-slate-700 rounded px-2.5 py-1.5 text-xl font-semibold mt-0.5 focus:outline-none focus:ring-1 focus:ring-violet-500">
+          </div>
+          <div>
+            <label class="${SB_LBL}">Logline</label>
+            <textarea data-bf="logline" rows="2" class="${SB_TA} mt-0.5">${esc(b.logline||"")}</textarea>
+          </div>
+          <div>
+            <label class="${SB_LBL}">Style notes</label>
+            <textarea data-bf="style_notes" rows="2" class="${SB_TA} mt-0.5">${esc(b.style_notes||"")}</textarea>
+          </div>
+          <div class="flex items-center gap-3">
+            <label class="${SB_LBL}">Aspect</label>
+            <select data-bf="aspect" class="bg-slate-800/60 border border-slate-700 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-violet-500">
+              ${["portrait","landscape","square"].map(a=>`<option value="${a}" ${b.aspect===a?"selected":""}>${a}</option>`).join("")}
+            </select>
+          </div>
+          <div class="flex gap-2 pt-1">
+            <input id="sbRefine" placeholder="Tell the director what to change…" class="${SB_INP} flex-1">
+            <button data-act="refine" class="bg-violet-600 hover:bg-violet-500 rounded-lg px-4 py-1.5 text-sm font-semibold shrink-0">Refine</button>
+          </div>
+        </div>
+
+        <!-- assets -->
+        <div>
+          <div class="flex items-center gap-2 mb-3">
+            <h3 class="text-sm font-semibold text-slate-300">Consistency anchors</h3>
+            <button data-act="lib-open" class="ml-auto bg-amber-600/80 hover:bg-amber-500 rounded-lg px-3 py-1 text-xs font-semibold" title="Reuse a saved character / world">★ From library</button>
+            <select id="sbAddBucket" class="bg-slate-800/60 border border-slate-700 rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-violet-500">
+              ${BUCKETS.map(([k,l])=>`<option value="${k}">${l.replace(/s$/,"")}</option>`).join("")}
+            </select>
+            <button data-act="add-asset" class="bg-slate-700 hover:bg-slate-600 rounded-lg px-3 py-1 text-xs font-semibold">+ Add anchor</button>
+          </div>
+          <div id="sbLibPanel" class="hidden mb-3 rounded-lg bg-slate-900/60 border border-amber-700/40 p-3"></div>
+          ${assetSections || `<p class="text-slate-600 text-sm">No anchors yet — add a character, environment, object, or style to keep it consistent across panels.</p>`}
+        </div>
+
+        <!-- panels -->
+        <div>
+          <div class="flex items-center gap-2 mb-3">
+            <h3 class="text-sm font-semibold text-slate-300">Panels (${panels.length})</h3>
+            <button data-act="add-panel" class="ml-auto bg-slate-700 hover:bg-slate-600 rounded-lg px-3 py-1 text-xs font-semibold">+ Add panel</button>
+          </div>
+          ${panelGrid}
+        </div>
+
+        <!-- assemble -->
+        <div class="rounded-lg bg-slate-800/30 border border-slate-700/60 p-4">
+          <div class="flex items-center gap-3 flex-wrap">
+            <h3 class="text-sm font-semibold text-slate-300">Final sequence</h3>
+            <button data-act="assemble" class="ml-auto bg-emerald-600 hover:bg-emerald-500 rounded-lg px-4 py-1.5 text-sm font-semibold">Assemble video</button>
+          </div>
+          ${b.assembled ? `<div class="flex items-center gap-2 mt-3">
+            <input id="sbScoreTags" placeholder="music style — leave blank to auto-compose" class="${SB_INP} flex-1">
+            <button data-act="score" class="bg-violet-600 hover:bg-violet-500 rounded-lg px-4 py-1.5 text-sm font-semibold shrink-0">${b.score ? "Re-score (replace music)" : "Score (add music)"}</button>
+          </div>
+          <div class="flex items-center gap-2 mt-2">
+            <input id="sbNarrateText" placeholder="voiceover text — leave blank to auto-write" class="${SB_INP} flex-1">
+            <button data-act="narrate" class="bg-violet-600 hover:bg-violet-500 rounded-lg px-4 py-1.5 text-sm font-semibold shrink-0">${b.narration ? "Re-narrate" : "Narrate (add voiceover)"}</button>
+          </div>
+          <div class="flex items-center gap-2 mt-2">
+            <input id="sbAmbientTags" placeholder="ambient / SFX — leave blank to auto-design (room tone, weather, nature…)" class="${SB_INP} flex-1">
+            <button data-act="ambient" class="bg-violet-600 hover:bg-violet-500 rounded-lg px-4 py-1.5 text-sm font-semibold shrink-0">${b.ambient ? "Re-do ambient / SFX" : "Ambient / SFX"}</button>
+          </div>` : ""}
+          ${assembled}
+        </div>
+      </div>`;
+    sbSetStatus("saved");
+  }
+
+  init().catch(e => el("genMsg").textContent = "Failed to load: " + e.message);
+  setMode("studio");
+  </script>
+</body>
+</html>

@@ -1,0 +1,54 @@
+name: txt2vid_ltx
+title: "Text → Video (LTX-Video)"
+kind: video
+description: "Text-to-video with LTX-Video 2B. Generates a clip directly from a text prompt (no source image needed)."
+template: templates/txt2vid_ltx.api.json
+ui_template: templates/txt2vid_ltx.ui.json
+client_outputs: ["30"]
+learning_png: true
+
+inject:
+  positive_prompt:
+    api: ["6", "inputs", "text"]
+    type: string
+    required: true
+    description: "Describe the scene AND the motion (LTX responds well to motion cues)."
+  negative_prompt:
+    api: ["7", "inputs", "text"]
+    type: string
+    default: "low quality, worst quality, blurry, distorted, watermark"
+  width:
+    api: ["71", "inputs", "width"]
+    type: int
+    default: 768
+  height:
+    api: ["71", "inputs", "height"]
+    type: int
+    default: 512
+  length:
+    api: ["71", "inputs", "length"]
+    type: int
+    default: 97
+    min: 9
+    max: 257
+    description: "Number of frames. Must be 8*n + 1 (e.g. 97, 121, 161)."
+  steps:
+    api: ["72", "inputs", "steps"]
+    type: int
+    default: 30
+    min: 1
+    max: 100
+  seed:
+    api: ["69", "inputs", "noise_seed"]
+    type: seed
+    default: -1
+  frame_rate:
+    api: ["70", "inputs", "frame_rate"]
+    type: float
+    default: 25.0
+    description: "Frame rate the model conditions on (motion feel)."
+  fps:
+    api: ["30", "inputs", "fps"]
+    type: float
+    default: 24.0
+    description: "Playback fps of the saved file."

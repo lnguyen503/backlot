@@ -1,0 +1,61 @@
+{
+  "1": {
+    "class_type": "ImageOnlyCheckpointLoader",
+    "inputs": { "ckpt_name": "svd_xt.safetensors" }
+  },
+  "2": {
+    "class_type": "SONICTLoader",
+    "inputs": {
+      "model": ["1", 0],
+      "sonic_unet": "unet.pth",
+      "ip_audio_scale": 1.0,
+      "use_interframe": true,
+      "dtype": "fp16"
+    }
+  },
+  "3": {
+    "class_type": "LoadImage",
+    "inputs": { "image": "placeholder.png" }
+  },
+  "4": {
+    "class_type": "LoadAudio",
+    "inputs": { "audio": "placeholder.wav" }
+  },
+  "5": {
+    "class_type": "SONIC_PreData",
+    "inputs": {
+      "clip_vision": ["1", 1],
+      "vae": ["1", 2],
+      "audio": ["4", 0],
+      "image": ["3", 0],
+      "weight_dtype": ["2", 1],
+      "min_resolution": 768,
+      "duration": 11.0,
+      "expand_ratio": 0.5
+    }
+  },
+  "6": {
+    "class_type": "SONICSampler",
+    "inputs": {
+      "model": ["2", 0],
+      "data_dict": ["5", 0],
+      "seed": 12345,
+      "inference_steps": 25,
+      "dynamic_scale": 0.8,
+      "fps": 25.0
+    }
+  },
+  "7": {
+    "class_type": "CreateVideo",
+    "inputs": { "images": ["6", 0], "fps": ["6", 1], "audio": ["4", 0] }
+  },
+  "8": {
+    "class_type": "SaveVideo",
+    "inputs": {
+      "video": ["7", 0],
+      "filename_prefix": "backlot/talkhost",
+      "format": "mp4",
+      "codec": "h264"
+    }
+  }
+}

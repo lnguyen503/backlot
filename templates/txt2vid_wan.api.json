@@ -1,0 +1,60 @@
+{
+  "37": {
+    "class_type": "UNETLoader",
+    "inputs": { "unet_name": "wan2.2_ti2v_5B_fp16.safetensors", "weight_dtype": "default" }
+  },
+  "38": {
+    "class_type": "CLIPLoader",
+    "inputs": { "clip_name": "umt5_xxl_fp8_e4m3fn_scaled.safetensors", "type": "wan" }
+  },
+  "39": {
+    "class_type": "VAELoader",
+    "inputs": { "vae_name": "wan2.2_vae.safetensors" }
+  },
+  "6": {
+    "class_type": "CLIPTextEncode",
+    "inputs": { "text": "a cinematic shot of a fox running through a snowy forest", "clip": ["38", 0] }
+  },
+  "7": {
+    "class_type": "CLIPTextEncode",
+    "inputs": { "text": "low quality, worst quality, blurry, distorted, watermark, static", "clip": ["38", 0] }
+  },
+  "48": {
+    "class_type": "ModelSamplingSD3",
+    "inputs": { "shift": 8.0, "model": ["37", 0] }
+  },
+  "55": {
+    "class_type": "Wan22ImageToVideoLatent",
+    "inputs": { "width": 1280, "height": 704, "length": 49, "batch_size": 1, "vae": ["39", 0] }
+  },
+  "3": {
+    "class_type": "KSampler",
+    "inputs": {
+      "seed": 0,
+      "steps": 30,
+      "cfg": 5.0,
+      "sampler_name": "euler",
+      "scheduler": "simple",
+      "denoise": 1.0,
+      "model": ["48", 0],
+      "positive": ["6", 0],
+      "negative": ["7", 0],
+      "latent_image": ["55", 0]
+    }
+  },
+  "8": {
+    "class_type": "VAEDecode",
+    "inputs": { "samples": ["3", 0], "vae": ["39", 0] }
+  },
+  "30": {
+    "class_type": "SaveAnimatedWEBP",
+    "inputs": {
+      "filename_prefix": "backlot/wan",
+      "fps": 24.0,
+      "lossless": false,
+      "quality": 90,
+      "method": "default",
+      "images": ["8", 0]
+    }
+  }
+}

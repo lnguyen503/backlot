@@ -1,0 +1,47 @@
+name: img2vid_wan14b
+title: "Image → Video (Wan 2.2 14B, high quality)"
+kind: video
+description: "Animate a START image with Wan 2.2 I2V A14B (two-expert MoE: high+low noise). Much better anatomy/motion than the 5B, at the cost of speed + VRAM. Appearance from the image, motion from the prompt."
+template: templates/img2vid_wan14b.api.json
+client_outputs: ["30"]
+learning_png: true
+
+inputs:
+  image:
+    api: ["23", "inputs", "image"]
+    type: image
+
+inject:
+  positive_prompt:
+    api: ["6", "inputs", "text"]
+    type: string
+    required: true
+    description: "The action/motion to perform (the look comes from the start image)."
+  image:
+    api: ["23", "inputs", "image"]
+    type: image
+    required: true
+    description: "Start frame (filename relative to ComfyUI input/). Locks appearance."
+  negative_prompt:
+    api: ["7", "inputs", "text"]
+    type: string
+    default: "low quality, worst quality, blurry, distorted, deformed face, extra limbs, three arms, multiple faces, two heads, warping, morphing, cropped head"
+  width:
+    api: ["55", "inputs", "width"]
+    type: int
+    default: 720
+  height:
+    api: ["55", "inputs", "height"]
+    type: int
+    default: 1280
+  length:
+    api: ["55", "inputs", "length"]
+    type: int
+    default: 81
+    min: 5
+    max: 121
+    description: "Frames (4n+1). 81 ≈ 5s at 16fps."
+  seed:
+    api: ["86", "inputs", "noise_seed"]
+    type: seed
+    default: -1

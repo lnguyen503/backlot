@@ -1,0 +1,59 @@
+name: txt2vid_wan
+title: "Text → Video (Wan 2.2 TI2V 5B)"
+kind: video
+description: "Best local text-to-video: Wan 2.2 TI2V 5B. Native 1280x704, high quality."
+template: templates/txt2vid_wan.api.json
+ui_template: templates/txt2vid_wan.ui.json
+client_outputs: ["30"]
+learning_png: true
+
+inject:
+  positive_prompt:
+    api: ["6", "inputs", "text"]
+    type: string
+    required: true
+    description: "Describe the scene and camera/subject motion. Wan follows cinematic prompts well."
+  negative_prompt:
+    api: ["7", "inputs", "text"]
+    type: string
+    default: "low quality, worst quality, blurry, distorted, watermark, static"
+  width:
+    api: ["55", "inputs", "width"]
+    type: int
+    default: 1280
+  height:
+    api: ["55", "inputs", "height"]
+    type: int
+    default: 704
+  length:
+    api: ["55", "inputs", "length"]
+    type: int
+    default: 49
+    min: 5
+    max: 121
+    description: "Frames. Must be 4*n + 1 (e.g. 49, 81, 121). 121 ≈ 5s at 24fps."
+  steps:
+    api: ["3", "inputs", "steps"]
+    type: int
+    default: 30
+    min: 1
+    max: 60
+  cfg:
+    api: ["3", "inputs", "cfg"]
+    type: float
+    default: 5.0
+    min: 0.0
+    max: 20.0
+  shift:
+    api: ["48", "inputs", "shift"]
+    type: float
+    default: 8.0
+    description: "ModelSamplingSD3 shift; Wan 2.2 5B works well around 8."
+  seed:
+    api: ["3", "inputs", "seed"]
+    type: seed
+    default: -1
+  fps:
+    api: ["30", "inputs", "fps"]
+    type: float
+    default: 24.0

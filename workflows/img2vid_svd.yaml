@@ -1,0 +1,55 @@
+name: img2vid_svd
+title: "Image → Video (Stable Video Diffusion)"
+kind: video
+description: "Animate a still image into a short clip with SVD (svd_xt, 25 frames)."
+template: templates/img2vid_svd.api.json
+ui_template: templates/img2vid_svd.ui.json   # Phase 4 (open-in-UI); optional in Phase 1/this build
+client_outputs: ["30"]                        # SaveAnimatedWEBP
+learning_png: true                            # video => Phase 4 injects a SaveImage for the learning PNG
+
+inputs:
+  image:
+    api: ["23", "inputs", "image"]            # LoadImage (filename in ComfyUI input/)
+    type: image
+
+inject:
+  image:
+    api: ["23", "inputs", "image"]
+    type: image
+    required: true
+    description: "Source still to animate (filename, relative to ComfyUI input/)."
+  motion_bucket_id:
+    api: ["12", "inputs", "motion_bucket_id"]
+    type: int
+    default: 127
+    min: 1
+    max: 255
+    description: "Higher = more motion."
+  frames:
+    api: ["12", "inputs", "video_frames"]
+    type: int
+    default: 25
+    min: 2
+    max: 25
+  augmentation_level:
+    api: ["12", "inputs", "augmentation_level"]
+    type: float
+    default: 0.0
+    min: 0.0
+    max: 10.0
+    description: "Higher loosens fidelity to the source (more variation/motion)."
+  steps:
+    api: ["22", "inputs", "steps"]
+    type: int
+    default: 20
+    min: 1
+    max: 60
+  seed:
+    api: ["22", "inputs", "seed"]
+    type: seed
+    default: -1
+  fps:
+    api: ["30", "inputs", "fps"]
+    type: float
+    default: 6.0
+    description: "Playback frame rate of the saved animation."

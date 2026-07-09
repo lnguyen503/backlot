@@ -1,0 +1,63 @@
+name: talkhost_infinitetalk
+title: "Talking Host (audio-driven portrait, InfiniteTalk / Wan 2.1 14B)"
+kind: video
+description: >
+  Animate a head-and-shoulders portrait into a PHOTOREALISTIC lip-synced talking-head clip
+  with InfiniteTalk (Wan 2.1 14B audio-driven avatar, via ComfyUI-WanVideoWrapper). Feed a
+  portrait + a voice WAV; the mouth is driven to the audio with tight phoneme sync and real
+  skin texture — the photoreal successor to the Sonic lane. Clip length follows the audio.
+  Requires ComfyUI with WanVideoWrapper + KJNodes and the InfiniteTalk / Wan 2.1 14B model
+  set installed. Default 480x832 portrait (native 480p) ~3.6 min / 5s on an RTX 5090.
+template: templates/talkhost_infinitetalk.api.json
+client_outputs: ["901"]                          # SaveVideo (mp4, h264)
+
+inject:
+  image:
+    api: ["284", "inputs", "image"]              # LoadImage (filename in ComfyUI input/)
+    type: image
+    required: true
+    description: "Portrait to animate (filename relative to ComfyUI input/). Head-and-shoulders, portrait aspect best."
+  audio:
+    api: ["125", "inputs", "audio"]              # LoadAudio (filename in ComfyUI input/)
+    type: audio
+    required: true
+    description: "Voice WAV to drive lip-sync (filename relative to ComfyUI input/). Output length follows the audio."
+  width:
+    api: ["245", "inputs", "value"]              # INTConstant -> resize width
+    type: int
+    default: 480
+    min: 256
+    max: 1024
+    description: "Output width (multiple of 16). 480x832 = native-480p portrait (best quality/speed sweet spot)."
+  height:
+    api: ["246", "inputs", "value"]              # INTConstant -> resize height
+    type: int
+    default: 832
+    min: 256
+    max: 1280
+    description: "Output height (multiple of 16). Match the portrait aspect or the head gets center-cropped."
+  prompt:
+    api: ["241", "inputs", "positive_prompt"]    # WanVideoTextEncodeCached
+    type: string
+    default: "a charismatic late-night talk show host speaking directly to camera, natural expressive face, warm studio lighting, photorealistic, cinematic"
+    description: "Look/mood prompt (identity comes from the portrait; keep it about lighting/scene, not the face)."
+  steps:
+    api: ["128", "inputs", "steps"]              # WanVideoSampler
+    type: int
+    default: 6
+    min: 2
+    max: 20
+    description: "Sampler steps. 6 with the lightx2v 4-step distill LoRA = fast and good."
+  max_frames:
+    api: ["270", "inputs", "value"]              # INTConstant -> frame cap
+    type: int
+    default: 500
+    min: 25
+    max: 2000
+    description: "Frame cap; actual clip length follows the audio at 25fps."
+  seed:
+    api: ["128", "inputs", "seed"]
+    type: seed
+    default: -1
+    max: 2147483647
+    description: "Sampler seed (-1 = random)."

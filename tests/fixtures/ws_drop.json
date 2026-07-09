@@ -1,0 +1,24 @@
+{
+  "_doc": "Recorded ws transcript with a mid-job disconnect, for the Phase-1 exit-gate reconcile test (2a). The executing:null completion is LOST during the drop and only recovered via /history on reconnect.",
+  "client_id": "fixture-client",
+  "prompt_id": "PIDX",
+  "transcript_before_drop": [
+    "{\"type\":\"execution_start\",\"data\":{\"prompt_id\":\"PIDX\"}}",
+    "{\"type\":\"progress\",\"data\":{\"value\":5,\"max\":20,\"prompt_id\":\"PIDX\"}}",
+    "{\"type\":\"executed\",\"data\":{\"node\":\"9\",\"prompt_id\":\"PIDX\",\"output\":{\"images\":[{\"filename\":\"fixture_001.png\",\"subfolder\":\"\",\"type\":\"output\"}]}}}"
+  ],
+  "transcript_after_reconnect": [
+    "{\"type\":\"executing\",\"data\":{\"node\":null,\"prompt_id\":\"PIDX\"}}"
+  ],
+  "history": {
+    "PIDX": {
+      "outputs": {
+        "9": {
+          "images": [
+            {"filename": "fixture_001.png", "subfolder": "", "type": "output"}
+          ]
+        }
+      }
+    }
+  }
+}

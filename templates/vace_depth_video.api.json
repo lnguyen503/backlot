@@ -1,0 +1,58 @@
+{
+  "1": {
+    "class_type": "UNETLoader",
+    "inputs": { "unet_name": "wan2.1_vace_1.3B_fp16.safetensors", "weight_dtype": "default" }
+  },
+  "2": {
+    "class_type": "ModelSamplingSD3",
+    "inputs": { "model": ["1", 0], "shift": 8.0 }
+  },
+  "3": {
+    "class_type": "CLIPLoader",
+    "inputs": { "clip_name": "umt5_xxl_fp8_e4m3fn_scaled.safetensors", "type": "wan" }
+  },
+  "4": {
+    "class_type": "CLIPTextEncode",
+    "inputs": { "text": "", "clip": ["3", 0] }
+  },
+  "5": {
+    "class_type": "CLIPTextEncode",
+    "inputs": { "text": "static, blurry, low quality, watermark, text, deformed, jpeg artifacts", "clip": ["3", 0] }
+  },
+  "6": {
+    "class_type": "VAELoader",
+    "inputs": { "vae_name": "wan_2.1_vae.safetensors" }
+  },
+  "7": {
+    "class_type": "LoadImagesFromFolderKJ",
+    "inputs": { "folder": "", "width": 512, "height": 512, "keep_aspect_ratio": "stretch",
+                "image_load_cap": 0, "start_index": 0 }
+  },
+  "8": {
+    "class_type": "WanVaceToVideo",
+    "inputs": {
+      "positive": ["4", 0], "negative": ["5", 0], "vae": ["6", 0],
+      "width": 512, "height": 512, "length": 33, "batch_size": 1, "strength": 1.0,
+      "control_video": ["7", 0]
+    }
+  },
+  "9": {
+    "class_type": "KSampler",
+    "inputs": {
+      "seed": 0, "steps": 25, "cfg": 6.0,
+      "sampler_name": "uni_pc", "scheduler": "simple", "denoise": 1.0,
+      "model": ["2", 0], "positive": ["8", 0], "negative": ["8", 1], "latent_image": ["8", 2]
+    }
+  },
+  "10": {
+    "class_type": "VAEDecode",
+    "inputs": { "samples": ["9", 0], "vae": ["6", 0] }
+  },
+  "11": {
+    "class_type": "SaveAnimatedWEBP",
+    "inputs": {
+      "images": ["10", 0], "filename_prefix": "vace", "fps": 16.0,
+      "lossless": false, "quality": 90, "method": "default"
+    }
+  }
+}

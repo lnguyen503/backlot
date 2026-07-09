@@ -1,0 +1,55 @@
+name: txt2img_sdxl
+title: "Text → Image (SDXL)"
+kind: image
+description: "Single-pass SDXL text-to-image."
+template: templates/txt2img_sdxl.api.json
+ui_template: templates/txt2img_sdxl.ui.json   # Phase 4 (open-in-UI); optional in Phase 1
+client_outputs: ["9"]                          # SaveImage (metadata-capable -> learning PNG, §7.2)
+
+inject:
+  positive_prompt:
+    api: ["6", "inputs", "text"]
+    ui:  { node: 6, widget: 0 }
+    type: string
+    required: true
+    description: "Detailed positive prompt the image should depict."
+  negative_prompt:
+    api: ["7", "inputs", "text"]
+    ui:  { node: 7, widget: 0 }
+    type: string
+    default: "text, watermark, lowres, jpeg artifacts, deformed"
+  seed:
+    api: ["3", "inputs", "seed"]
+    ui:  { node: 3, widget: 0 }
+    type: seed
+    default: -1
+  steps:
+    api: ["3", "inputs", "steps"]
+    ui:  { node: 3, widget: 2 }
+    type: int
+    default: 30
+    min: 1
+    max: 100
+  cfg:
+    api: ["3", "inputs", "cfg"]
+    ui:  { node: 3, widget: 3 }
+    type: float
+    default: 7.0
+    min: 0
+    max: 30
+  width:
+    api: ["5", "inputs", "width"]
+    ui:  { node: 5, widget: 0 }
+    type: int
+    default: 1024
+  height:
+    api: ["5", "inputs", "height"]
+    ui:  { node: 5, widget: 1 }
+    type: int
+    default: 1024
+  ckpt_name:
+    api: ["4", "inputs", "ckpt_name"]
+    ui:  { node: 4, widget: 0 }
+    type: enum
+    enum_source: object_info:CheckpointLoaderSimple.ckpt_name
+    default: "sd_xl_base_1.0.safetensors"

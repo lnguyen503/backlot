@@ -1,0 +1,58 @@
+[project]
+name = "backlot"
+version = "0.1.0"
+description = "Backlot — a local AI production studio that drives ComfyUI and Blender: MCP server for agent control plus a web studio UI."
+requires-python = ">=3.11"
+dependencies = [
+    "mcp>=1.2.0",
+    "httpx>=0.27",
+    "websockets>=12.0",
+    "pydantic>=2.6",
+    "pyyaml>=6.0",
+    "fastapi>=0.110",
+    "uvicorn>=0.29",
+    "python-multipart>=0.0.9",
+    "numpy>=1.26",
+    "pillow>=10.0",
+    "imageio>=2.34",
+    "imageio-ffmpeg>=0.4.9",
+    "opencv-python-headless>=4.9",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.23",
+]
+# identity re-lock (faceswap.py / consistent-video pipeline); GPU: also install
+# onnxruntime-gpu + the nvidia-*-cu12 wheels (see README)
+faces = [
+    "insightface>=0.7",
+    "onnxruntime>=1.17",
+]
+# Kokoro TTS voice-over (Voice tab, storyboard narration reference)
+voice = [
+    "kokoro>=0.7",
+    "soundfile>=0.12",
+]
+
+[project.urls]
+Homepage = "https://github.com/lnguyen503/backlot"
+Repository = "https://github.com/lnguyen503/backlot"
+Issues = "https://github.com/lnguyen503/backlot/issues"
+Companion = "https://github.com/lnguyen503/ai-director"
+
+[project.scripts]
+backlot-mcp = "backlot.mcp_server:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/backlot"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+pythonpath = ["src"]

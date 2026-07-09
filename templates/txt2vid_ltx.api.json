@@ -1,0 +1,63 @@
+{
+  "4": {
+    "class_type": "CheckpointLoaderSimple",
+    "inputs": { "ckpt_name": "ltx-video-2b-v0.9.5.safetensors" }
+  },
+  "38": {
+    "class_type": "CLIPLoader",
+    "inputs": { "clip_name": "t5xxl_fp8_e4m3fn.safetensors", "type": "ltxv" }
+  },
+  "6": {
+    "class_type": "CLIPTextEncode",
+    "inputs": { "text": "a cat walking through a garden", "clip": ["38", 0] }
+  },
+  "7": {
+    "class_type": "CLIPTextEncode",
+    "inputs": { "text": "low quality, worst quality, blurry, distorted, watermark", "clip": ["38", 0] }
+  },
+  "71": {
+    "class_type": "EmptyLTXVLatentVideo",
+    "inputs": { "width": 768, "height": 512, "length": 97, "batch_size": 1 }
+  },
+  "70": {
+    "class_type": "LTXVConditioning",
+    "inputs": { "frame_rate": 25.0, "positive": ["6", 0], "negative": ["7", 0] }
+  },
+  "72": {
+    "class_type": "LTXVScheduler",
+    "inputs": { "steps": 30, "max_shift": 2.05, "base_shift": 0.95, "stretch": true, "terminal": 0.1 }
+  },
+  "73": {
+    "class_type": "KSamplerSelect",
+    "inputs": { "sampler_name": "euler" }
+  },
+  "69": {
+    "class_type": "SamplerCustom",
+    "inputs": {
+      "add_noise": true,
+      "noise_seed": 0,
+      "cfg": 3.0,
+      "model": ["4", 0],
+      "positive": ["70", 0],
+      "negative": ["70", 1],
+      "sampler": ["73", 0],
+      "sigmas": ["72", 0],
+      "latent_image": ["71", 0]
+    }
+  },
+  "8": {
+    "class_type": "VAEDecode",
+    "inputs": { "samples": ["69", 0], "vae": ["4", 2] }
+  },
+  "30": {
+    "class_type": "SaveAnimatedWEBP",
+    "inputs": {
+      "filename_prefix": "backlot/ltxv",
+      "fps": 24.0,
+      "lossless": false,
+      "quality": 90,
+      "method": "default",
+      "images": ["8", 0]
+    }
+  }
+}

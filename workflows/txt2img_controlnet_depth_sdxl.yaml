@@ -1,0 +1,80 @@
+name: txt2img_controlnet_depth_sdxl
+title: "Depth ControlNet → Image (SDXL)"
+kind: image
+description: >
+  Generate an image whose geometry is locked to a DEPTH map (ControlNet, SDXL). Feed a
+  depth control image (e.g. a Blender depth pass) + a style prompt; SDXL renders the prompt
+  while following the depth's 3D structure. The bridge for AI-stylized 3D: Blender supplies
+  geometry, this supplies the look. Uses control-lora-depth-rank256 + sd_xl_base_1.0.
+template: templates/txt2img_controlnet_depth_sdxl.api.json
+client_outputs: ["9"]
+
+inputs:
+  image:
+    api: ["11", "inputs", "image"]
+    type: image
+
+inject:
+  positive_prompt:
+    api: ["6", "inputs", "text"]
+    type: string
+    required: true
+    description: "The look/style to render over the depth structure."
+  image:
+    api: ["11", "inputs", "image"]
+    type: image
+    required: true
+    description: "Depth control map (filename in ComfyUI input/). Near=bright. Locks geometry."
+  negative_prompt:
+    api: ["7", "inputs", "text"]
+    type: string
+    default: "text, watermark, lowres, jpeg artifacts, deformed"
+  strength:
+    api: ["12", "inputs", "strength"]
+    type: float
+    default: 0.8
+    min: 0.0
+    max: 2.0
+    description: "ControlNet strength. Lower = freer/looser to the prompt, higher = stricter to depth."
+  start_percent:
+    api: ["12", "inputs", "start_percent"]
+    type: float
+    default: 0.0
+  end_percent:
+    api: ["12", "inputs", "end_percent"]
+    type: float
+    default: 1.0
+  steps:
+    api: ["3", "inputs", "steps"]
+    type: int
+    default: 30
+    min: 1
+    max: 100
+  cfg:
+    api: ["3", "inputs", "cfg"]
+    type: float
+    default: 7.0
+    min: 0.0
+    max: 30.0
+  seed:
+    api: ["3", "inputs", "seed"]
+    type: seed
+    default: -1
+  width:
+    api: ["5", "inputs", "width"]
+    type: int
+    default: 1024
+  height:
+    api: ["5", "inputs", "height"]
+    type: int
+    default: 1024
+  ckpt_name:
+    api: ["4", "inputs", "ckpt_name"]
+    type: enum
+    enum_source: object_info:CheckpointLoaderSimple.ckpt_name
+    default: "sd_xl_base_1.0.safetensors"
+  control_net_name:
+    api: ["10", "inputs", "control_net_name"]
+    type: enum
+    enum_source: object_info:ControlNetLoader.control_net_name
+    default: "control-lora-depth-rank256-sdxl.safetensors"

@@ -1,0 +1,58 @@
+# Backlot — runtime config.
+#
+# Point the `comfyui:` section at YOUR ComfyUI install. The engine talks to a
+# running ComfyUI server over HTTP/WebSocket (base_url/ws_url); the *_dir paths
+# are optional and only needed by features that stage files directly on disk
+# (image-to-video input staging, model checks).
+#
+# Relative paths below resolve against this repo's root.
+
+comfyui:
+  host: "127.0.0.1"
+  port: 8188
+  base_url: "http://127.0.0.1:8188"
+  ws_url:   "ws://127.0.0.1:8188/ws"
+  # Set these to your ComfyUI install (examples for ComfyUI Desktop on Windows):
+  #   install_dir:        "C:/Users/<you>/AppData/Local/Comfy-Desktop/ComfyUI-Installs/ComfyUI/ComfyUI"
+  #   user_workflows_dir: "C:/Users/<you>/AppData/Local/Comfy-Desktop/ComfyUI-Installs/ComfyUI/ComfyUI/user/default/workflows"
+  #   input_dir:          "C:/Users/<you>/AppData/Local/Comfy-Desktop/ComfyUI-Shared/input"
+  #   output_dir:         "C:/Users/<you>/AppData/Local/Comfy-Desktop/ComfyUI-Shared/output"
+  #   models_base:        "C:/Users/<you>/AppData/Local/Comfy-Desktop/ComfyUI-Shared/models"
+  install_dir:        null
+  user_workflows_dir: null
+  input_dir:          null
+  output_dir:         null
+  models_base:        null
+
+paths:
+  workflows: "workflows"
+  templates: "templates"
+  pipelines: "pipelines"
+  runs:      "runs"
+
+# Local LLM (Ollama) used by the storyboard/Director authoring brain + prompt assist.
+models:
+  provider: "ollama"
+  base_url: "http://127.0.0.1:11434"
+  authoring_model: "qwen2.5:3b"   # any instruct model you have pulled
+  keep_alive: "30m"
+  options: { temperature: 0.7, num_ctx: 16384 }
+
+timeouts:
+  http_s: 30
+  ollama_s: 120
+  image_job_s: 300
+  video_job_s: 1800
+  stall_s: 120
+  ws_reconnect_max_s: 30
+
+concurrency:
+  gpu_lease: false
+
+server:
+  web_host: "127.0.0.1"
+  web_port: 8765
+
+logging:
+  level: "INFO"
+  dir: "logs"

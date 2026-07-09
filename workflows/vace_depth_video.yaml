@@ -1,0 +1,85 @@
+name: vace_depth_video
+title: "Depth → Coherent Video (Wan VACE)"
+kind: video
+description: >
+  Temporally-consistent AI-stylized video from a DEPTH control SEQUENCE, generated in ONE pass by
+  the Wan 2.1 VACE video-diffusion model (no per-frame flicker). Point it at a folder of depth
+  frames (e.g. a Blender depth pass) + a style prompt; VACE follows the geometry/motion across the
+  whole clip. The SOTA fix for the per-frame-ControlNet flicker. Uses wan2.1_vace_1.3B + umt5 + Wan2.1 VAE.
+template: templates/vace_depth_video.api.json
+client_outputs: ["11"]
+
+inject:
+  positive_prompt:
+    api: ["4", "inputs", "text"]
+    type: string
+    required: true
+    description: "The look/style to render over the depth-driven geometry and motion."
+  control_dir:
+    api: ["7", "inputs", "folder"]
+    type: string
+    required: true
+    description: "Absolute path to a folder of depth control frames (sorted; e.g. a Blender depth pass)."
+  negative_prompt:
+    api: ["5", "inputs", "text"]
+    type: string
+    default: "static, blurry, low quality, watermark, text, deformed, jpeg artifacts"
+  length:
+    api: ["8", "inputs", "length"]
+    type: int
+    default: 33
+    min: 5
+    max: 161
+    description: "Output frames (4n+1). Should match the number of control frames."
+  strength:
+    api: ["8", "inputs", "strength"]
+    type: float
+    default: 1.0
+    min: 0.0
+    max: 2.0
+    description: "VACE control strength (how strictly to follow the depth structure)."
+  steps:
+    api: ["9", "inputs", "steps"]
+    type: int
+    default: 25
+    min: 1
+    max: 60
+  cfg:
+    api: ["9", "inputs", "cfg"]
+    type: float
+    default: 6.0
+    min: 0.0
+    max: 20.0
+  seed:
+    api: ["9", "inputs", "seed"]
+    type: seed
+    default: -1
+  fps:
+    api: ["11", "inputs", "fps"]
+    type: float
+    default: 16.0
+  width:
+    api: ["8", "inputs", "width"]
+    type: int
+    default: 512
+    description: "VACE output width (multiple of 16)."
+  height:
+    api: ["8", "inputs", "height"]
+    type: int
+    default: 512
+    description: "VACE output height (multiple of 16)."
+  load_width:
+    api: ["7", "inputs", "width"]
+    type: int
+    default: 512
+    description: "Control-frame resize width (match width)."
+  load_height:
+    api: ["7", "inputs", "height"]
+    type: int
+    default: 512
+    description: "Control-frame resize height (match height)."
+  model:
+    api: ["1", "inputs", "unet_name"]
+    type: enum
+    enum_source: object_info:UNETLoader.unet_name
+    default: "wan2.1_vace_1.3B_fp16.safetensors"

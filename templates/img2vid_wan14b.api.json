@@ -1,0 +1,102 @@
+{
+  "37": {
+    "class_type": "UNETLoader",
+    "inputs": { "unet_name": "wan2.2_i2v_high_noise_14B_fp8_scaled.safetensors", "weight_dtype": "default" }
+  },
+  "40": {
+    "class_type": "UNETLoader",
+    "inputs": { "unet_name": "wan2.2_i2v_low_noise_14B_fp8_scaled.safetensors", "weight_dtype": "default" }
+  },
+  "48": {
+    "class_type": "ModelSamplingSD3",
+    "inputs": { "shift": 5.0, "model": ["37", 0] }
+  },
+  "49": {
+    "class_type": "ModelSamplingSD3",
+    "inputs": { "shift": 5.0, "model": ["40", 0] }
+  },
+  "38": {
+    "class_type": "CLIPLoader",
+    "inputs": { "clip_name": "umt5_xxl_fp8_e4m3fn_scaled.safetensors", "type": "wan" }
+  },
+  "39": {
+    "class_type": "VAELoader",
+    "inputs": { "vae_name": "wan_2.1_vae.safetensors" }
+  },
+  "23": {
+    "class_type": "LoadImage",
+    "inputs": { "image": "placeholder.png" }
+  },
+  "6": {
+    "class_type": "CLIPTextEncode",
+    "inputs": { "text": "a man walks through his home, smooth camera, cinematic", "clip": ["38", 0] }
+  },
+  "7": {
+    "class_type": "CLIPTextEncode",
+    "inputs": { "text": "low quality, worst quality, blurry, distorted, deformed face, extra limbs, three arms, multiple faces, two heads, warping, morphing, cropped head", "clip": ["38", 0] }
+  },
+  "55": {
+    "class_type": "WanImageToVideo",
+    "inputs": {
+      "width": 720,
+      "height": 1280,
+      "length": 81,
+      "batch_size": 1,
+      "positive": ["6", 0],
+      "negative": ["7", 0],
+      "vae": ["39", 0],
+      "start_image": ["23", 0]
+    }
+  },
+  "86": {
+    "class_type": "KSamplerAdvanced",
+    "inputs": {
+      "add_noise": "enable",
+      "noise_seed": 0,
+      "steps": 20,
+      "cfg": 3.5,
+      "sampler_name": "euler",
+      "scheduler": "simple",
+      "start_at_step": 0,
+      "end_at_step": 10,
+      "return_with_leftover_noise": "enable",
+      "model": ["48", 0],
+      "positive": ["55", 0],
+      "negative": ["55", 1],
+      "latent_image": ["55", 2]
+    }
+  },
+  "85": {
+    "class_type": "KSamplerAdvanced",
+    "inputs": {
+      "add_noise": "disable",
+      "noise_seed": 0,
+      "steps": 20,
+      "cfg": 3.5,
+      "sampler_name": "euler",
+      "scheduler": "simple",
+      "start_at_step": 10,
+      "end_at_step": 10000,
+      "return_with_leftover_noise": "disable",
+      "model": ["49", 0],
+      "positive": ["55", 0],
+      "negative": ["55", 1],
+      "latent_image": ["86", 0]
+    }
+  },
+  "8": {
+    "class_type": "VAEDecode",
+    "inputs": { "samples": ["85", 0], "vae": ["39", 0] }
+  },
+  "30": {
+    "class_type": "SaveAnimatedWEBP",
+    "inputs": {
+      "filename_prefix": "backlot/wanvid14b",
+      "fps": 16.0,
+      "lossless": false,
+      "quality": 90,
+      "method": "default",
+      "images": ["8", 0]
+    }
+  }
+}

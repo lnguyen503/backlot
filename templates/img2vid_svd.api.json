@@ -1,0 +1,58 @@
+{
+  "3": {
+    "class_type": "ImageOnlyCheckpointLoader",
+    "inputs": { "ckpt_name": "svd_xt.safetensors" }
+  },
+  "23": {
+    "class_type": "LoadImage",
+    "inputs": { "image": "placeholder.png" }
+  },
+  "12": {
+    "class_type": "SVD_img2vid_Conditioning",
+    "inputs": {
+      "width": 1024,
+      "height": 576,
+      "video_frames": 25,
+      "motion_bucket_id": 127,
+      "fps": 6,
+      "augmentation_level": 0.0,
+      "clip_vision": ["3", 1],
+      "init_image": ["23", 0],
+      "vae": ["3", 2]
+    }
+  },
+  "14": {
+    "class_type": "VideoLinearCFGGuidance",
+    "inputs": { "min_cfg": 1.0, "model": ["3", 0] }
+  },
+  "22": {
+    "class_type": "KSampler",
+    "inputs": {
+      "seed": 0,
+      "steps": 20,
+      "cfg": 2.5,
+      "sampler_name": "euler",
+      "scheduler": "karras",
+      "denoise": 1.0,
+      "model": ["14", 0],
+      "positive": ["12", 0],
+      "negative": ["12", 1],
+      "latent_image": ["12", 2]
+    }
+  },
+  "8": {
+    "class_type": "VAEDecode",
+    "inputs": { "samples": ["22", 0], "vae": ["3", 2] }
+  },
+  "30": {
+    "class_type": "SaveAnimatedWEBP",
+    "inputs": {
+      "filename_prefix": "backlot/svd",
+      "fps": 6.0,
+      "lossless": false,
+      "quality": 90,
+      "method": "default",
+      "images": ["8", 0]
+    }
+  }
+}

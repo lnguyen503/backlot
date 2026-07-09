@@ -1,0 +1,42 @@
+name: music_acestep
+title: "Text → Music (ACE-Step)"
+kind: audio
+description: "Generate a song or instrumental track from a text description (and optional lyrics) with ACE-Step."
+template: templates/music_acestep.api.json
+ui_template: templates/music_acestep.ui.json   # Phase 4 (open-in-UI); optional here
+client_outputs: ["50"]                          # SaveAudioMP3
+
+inject:
+  tags:
+    api: ["18", "inputs", "tags"]
+    type: string
+    required: true
+    description: "Style/description of the music: genre, mood, instruments (comma-separated works well)."
+  lyrics:
+    api: ["18", "inputs", "lyrics"]
+    type: string
+    default: ""
+    description: "Optional lyrics. Leave empty for an instrumental track."
+  seconds:
+    api: ["17", "inputs", "seconds"]
+    type: float
+    default: 30.0
+    min: 1.0
+    max: 240.0
+    description: "Length of the track in seconds."
+  steps:
+    api: ["52", "inputs", "steps"]
+    type: int
+    default: 50
+    min: 1
+    max: 200
+  cfg:
+    api: ["52", "inputs", "cfg"]
+    type: float
+    default: 5.0
+    min: 0.0
+    max: 30.0
+  seed:
+    api: ["52", "inputs", "seed"]
+    type: seed
+    default: -1

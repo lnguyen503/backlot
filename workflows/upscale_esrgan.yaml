@@ -1,0 +1,30 @@
+name: upscale_esrgan
+title: "Upscale Image (Real-ESRGAN 4x)"
+kind: edit
+description: "AI super-resolution: enlarge + sharpen an image with Real-ESRGAN (4x native; scale_by trims to 2x/3x). Channel-grade stills and frames."
+template: templates/upscale_esrgan.api.json
+client_outputs: ["4"]                          # SaveImage
+
+inputs:
+  image:
+    api: ["1", "inputs", "image"]              # LoadImage (filename in ComfyUI input/)
+    type: image
+
+inject:
+  image:
+    api: ["1", "inputs", "image"]
+    type: image
+    required: true
+    description: "Source image to upscale (filename, relative to ComfyUI input/)."
+  model_name:
+    api: ["2", "inputs", "model_name"]
+    type: string
+    default: "RealESRGAN_x4plus.pth"
+    description: "Upscale model in ComfyUI models/upscale_models/."
+  scale_by:
+    api: ["5", "inputs", "scale_by"]
+    type: float
+    default: 1.0
+    min: 0.25
+    max: 1.0
+    description: "Trim the native 4x: 1.0 = 4x, 0.75 = 3x, 0.5 = 2x."

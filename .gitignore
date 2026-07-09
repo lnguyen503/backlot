@@ -1,0 +1,33 @@
+# Python
+.venv/
+# isolated voice venvs (torch/torchaudio) — kept out of the lean engine venv
+.venv-tts/
+.venv-cbx/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+
+# Engine runtime artifacts (not source)
+runs/
+logs/
+
+# Models live in ComfyUI's shared dir, never in this repo
+*.safetensors
+*.ckpt
+*.pth
+*.pt
+*.gguf
+*.onnx
+models/          # local face-swap model (inswapper_128.onnx) — fetched, not vendored
+
+# OS
+Thumbs.db
+.DS_Store
+.venv-lp/
+.liveportrait/
+
+# demo/dev artifacts
+*.log
+*.err
+.env
