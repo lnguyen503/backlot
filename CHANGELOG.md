@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.1.3 — 2026-07-09
+
+Polish from a clean-room stranger-install test (graded A-; all nits one-liners).
+
+- `pyproject.toml` version now tracks the release tag (was stuck at 0.1.0).
+- Docs: port-conflict troubleshooting (`BACKLOT_WEB_PORT` / `server.web_port`); zsh-safe
+  install quoting (`pip install -e '.[dev]'`); Windows long-path note; explicit note that
+  the studio serves without ComfyUI (generation is what needs it).
+
 ## v0.1.2 — 2026-07-09
 
 ### Added

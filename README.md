@@ -52,7 +52,7 @@ the UI, the HTTP API, and MCP — no code changes.
 git clone https://github.com/lnguyen503/backlot
 cd backlot
 python -m venv .venv
-.venv/Scripts/pip install -e .[dev]        # Windows (Linux/mac: .venv/bin/pip)
+.venv/Scripts/pip install -e '.[dev]'      # Windows (Linux/mac: .venv/bin/pip; quotes matter in zsh)
 ```
 
 Edit `config/engine.yaml`:

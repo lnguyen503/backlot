@@ -23,8 +23,11 @@ takes one terminal — then add the director pattern when you want missions inst
 git clone https://github.com/lnguyen503/backlot
 cd backlot
 python -m venv .venv
-.venv/Scripts/pip install -e .[dev]      # Linux/mac: .venv/bin/pip
+.venv/Scripts/pip install -e '.[dev]'    # Linux/mac: .venv/bin/pip; quotes matter in zsh
 ```
+
+> Windows: clone to a short path (e.g. `C:\dev`) or enable `LongPathsEnabled` — deep
+> directories can break venv/package installs.
 
 Open `config/engine.yaml` and point the `comfyui:` block at your ComfyUI server (the defaults
 match a local install on `127.0.0.1:8188`). The `*_dir` paths are optional — set them when you
@@ -41,6 +44,8 @@ Sanity check (no GPU work, ~20s):
 **Web studio.** `start.bat` (or `.venv/Scripts/python -m backlot.web.app`) →
 http://127.0.0.1:8765 → pick *Text → Image (SDXL)* → type a prompt → **Generate**. The result
 lands in the gallery with Vary / Edit / Animate / Upscale actions on it.
+Note: the studio serves fine WITHOUT ComfyUI running — generation is what needs ComfyUI up
+on `127.0.0.1:8188`, so don't wait for first-Generate to find out.
 
 **One HTTP call** (from any app or script):
 
@@ -132,6 +137,9 @@ watch renders happen — or to type a spend authorization directly.
 
 ## Troubleshooting
 
+- **Port 8765 already in use** (`Errno 10048` / `EADDRINUSE`) — another studio instance (or
+  app) holds it: set the `BACKLOT_WEB_PORT` env var, or `server.web_port` in
+  `config/engine.yaml`.
 - **Generation hangs / OOM after a heavy video job** — ComfyUI is holding the last model set;
   the engine frees VRAM before its heavy paths, but if you drive ComfyUI manually too, hit
   `POST /free {"unload_models":true,"free_memory":true}`.
