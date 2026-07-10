@@ -109,6 +109,21 @@ YAML documents what it needs. The main ones:
 The faceswap identity pipeline additionally fetches `inswapper_128.onnx` + `GFPGANv1.4.onnx` into
 `models/` (gitignored) and uses insightface `buffalo_l`.
 
+### Required ComfyUI custom nodes
+
+Most workflows use **core ComfyUI nodes only** — a stock install runs image, video (Wan/LTX/SVD),
+music, Kontext editing, inpaint, upscale, ControlNet, and the whole Blender→VACE lane with no
+extra nodes. Three workflows need custom node packs (install via ComfyUI-Manager or git clone
+into `custom_nodes/`, then restart ComfyUI):
+
+| Workflow | Custom nodes |
+|---|---|
+| `talkhost_infinitetalk` / `talkhost_infinitetalk_multi` | [ComfyUI-WanVideoWrapper](https://github.com/kijai/ComfyUI-WanVideoWrapper) + [ComfyUI-KJNodes](https://github.com/kijai/ComfyUI-KJNodes) (kijai) |
+| `talkhost_sonic` (legacy) | [ComfyUI_Sonic](https://github.com/smthemex/ComfyUI_Sonic) |
+
+If a run fails instantly with an "invalid prompt / class type not found" error naming a node
+like `MultiTalkWav2VecEmbeds` or `SONICSampler`, this table is the reason.
+
 **⚠ License note:** model weights carry their own licenses, independent of this repo's MIT code
 license. Notably **FLUX.1-dev is non-commercial**; Wan, LTX, SVD, ACE-Step and others each have
 their own terms. Review the license of every model you use before commercial work.
@@ -137,7 +152,8 @@ src/backlot/
   mcp_server.py MCP adapter
 workflows/      one YAML per capability (params, bounds, docs)
 templates/      matching ComfyUI API-format graphs
-tests/          unit suite + live verifiers (tests/live_run.py <workflow> '<json>')
+tests/          unit suite (pytest)
+scripts/        dev/live utilities (scripts/live_run.py <workflow> '<json>', demo makers, benchmarks)
 ```
 
 ## License

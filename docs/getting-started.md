@@ -12,6 +12,7 @@ takes one terminal — then add the director pattern when you want missions inst
 | Python 3.11+ | the engine | |
 | A running ComfyUI | does the actual generation | any install; ComfyUI Desktop works |
 | Model weights | per workflow | see the README's Models table — start with just SDXL |
+| Custom nodes (talking heads only) | InfiniteTalk / Sonic lanes | see the README's "Required ComfyUI custom nodes" — everything else is core-nodes only |
 | ffmpeg | assembly/transcode | `imageio-ffmpeg` wheels are enough |
 | Ollama (optional) | storyboard/Director authoring + ✨ prompt assist | any small instruct model |
 | Blender 4.2+/5.x (optional) | the 3D lane | auto-located, or set `BLENDER_EXE` |
@@ -51,7 +52,7 @@ curl -X POST http://127.0.0.1:8765/api/generate -H "Content-Type: application/js
 **CLI, no server:**
 
 ```bash
-.venv/Scripts/python tests/live_run.py txt2img_sdxl '{"positive_prompt":"a lighthouse at dawn"}'
+.venv/Scripts/python scripts/live_run.py txt2img_sdxl '{"positive_prompt":"a lighthouse at dawn"}'
 ```
 
 All three run the same engine code. Every capability in `workflows/` is available through all

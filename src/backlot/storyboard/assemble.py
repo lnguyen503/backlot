@@ -78,12 +78,22 @@ def _norm_clip(ff: str, clip: Path, dst: Path, w: int, h: int, fps: int) -> None
 
 
 def _duration(path: Path) -> float:
-    """Seconds of a (normalised) clip."""
+    """Seconds of a clip's VIDEO stream (frames / fps).
+
+    Never trust the container duration: it equals the LONGEST stream, so a
+    talking clip whose audio outruns its video reports the audio length and
+    every xfade junction lands late (video freezes, audio drifts)."""
     r = imageio.get_reader(str(path))
     m = r.get_meta_data()
-    d = m.get("duration") or (r.count_frames() / float(m.get("fps", 24) or 24))
+    fps = float(m.get("fps", 24) or 24)
+    try:
+        n = r.count_frames()
+    except Exception:
+        n = 0
     r.close()
-    return float(d)
+    if n and n != float("inf"):
+        return float(n) / fps
+    return float(m.get("duration") or 0.0)
 
 
 def _concat_hard(ff: str, parts: list[Path], out: Path, tmp: Path) -> None:
@@ -95,21 +105,32 @@ def _concat_hard(ff: str, parts: list[Path], out: Path, tmp: Path) -> None:
 
 
 def _concat_xfade(ff: str, parts: list[Path], out: Path, xdur: float) -> None:
-    """Cross-dissolve between clips (video xfade + audio acrossfade) so the
-    pose/framing jump between independent shots reads as a smooth transition."""
+    """Cross-dissolve between clips: chained video xfade + ABSOLUTE audio placement.
+
+    Audio is NOT chained through acrossfade: that places each junction by the
+    previous clip's AUDIO stream length, which drifts against the video timeline
+    whenever a clip's a/v lengths differ (talking clips: video quantized to whole
+    frames vs. the WAV) — lips desync more at every junction. Instead each part's
+    audio is delayed to its part's VIDEO start on the final timeline and mixed
+    (amix normalize=0), so audio can never drift from picture."""
     durs = [_duration(p) for p in parts]
-    vf, af = "", ""
-    pv, pa, acc = "[0:v]", "[0:a]", durs[0]
+    vf, pv, acc = "", "[0:v]", durs[0]
+    starts = [0.0]                      # each part's video start on the final timeline
     for i in range(1, len(parts)):
         off = max(0.0, acc - xdur)
-        vlab, alab = f"[v{i}]", f"[a{i}]"
+        starts.append(off)
+        vlab = f"[v{i}]"
         vf += f"{pv}[{i}:v]xfade=transition=fade:duration={xdur}:offset={off:.3f}{vlab};"
-        af += f"{pa}[{i}:a]acrossfade=d={xdur}{alab};"
-        pv, pa, acc = vlab, alab, acc + durs[i] - xdur
+        pv, acc = vlab, acc + durs[i] - xdur
+    af, mix_in = "", ""
+    for i, s in enumerate(starts):
+        af += f"[{i}:a]adelay={int(round(s * 1000))}:all=1[ad{i}];"
+        mix_in += f"[ad{i}]"
+    af += f"{mix_in}amix=inputs={len(parts)}:duration=longest:normalize=0[aout]"
     cmd = [ff, "-y"]
     for p in parts:
         cmd += ["-i", str(p)]
-    cmd += ["-filter_complex", (vf + af).rstrip(";"), "-map", pv, "-map", pa,
+    cmd += ["-filter_complex", vf + af, "-map", pv, "-map", "[aout]",
             "-c:v", "libx264", "-pix_fmt", "yuv420p", "-c:a", "aac", str(out)]
     subprocess.run(cmd, check=True, capture_output=True)
 

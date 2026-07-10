@@ -62,6 +62,10 @@ class ComfyClient:
     async def interrupt(self) -> None:
         await self._http.post(f"{self._base}/interrupt")
 
+    async def dequeue(self, prompt_id: str) -> None:
+        """Remove a still-pending prompt from ComfyUI's queue (does not touch the running job)."""
+        await self._http.post(f"{self._base}/queue", json={"delete": [prompt_id]})
+
     def view_url(self, filename: str, subfolder: str = "", type_: str = "output") -> str:
         query = urlencode({"filename": filename, "subfolder": subfolder, "type": type_})
         return f"{self._base}/view?{query}"

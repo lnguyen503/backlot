@@ -70,14 +70,14 @@ episode — rests on a "master + derivations" discipline:
   `assemble._to_mp4` transcodes webp → mp4 via imageio first. Don't remove that path.
 - **Wan-style savers can emit animated WEBP *named* `.mp4`**, and its container duration probes
   as N/A — probe streams / count frames, don't trust the container.
-- **A/V drift in chained crossfades (KNOWN ISSUE).** `assemble._concat_xfade` places video
-  junctions from measured durations while chained `acrossfade` places audio by each clip's own
-  audio length. When a clip's audio and video stream lengths differ (talking clips: video
-  quantized to 25fps frames vs. WAV length), every junction adds offset and lips drift across a
-  multi-segment stitch. The proven fix — keep the xfade video chain, but place each segment's
-  audio ABSOLUTELY on the final timeline (`adelay` to the segment's video start + `amix
-  normalize=0`) — is not yet ported into `_concat_xfade`. Until it is, prefer hard cuts
-  (`crossfade=0`) for talking content.
+- **A/V drift in chained crossfades (FIXED in v0.1.1, lesson kept).** Chaining audio through
+  `acrossfade` places each junction by the previous clip's AUDIO stream length; when a clip's
+  audio and video lengths differ (talking clips: video quantized to 25fps frames vs. WAV
+  length), every junction adds offset and lips drift across a multi-segment stitch.
+  `_concat_xfade` now keeps the video xfade chain but places each segment's audio ABSOLUTELY
+  on the final timeline (`adelay` to the segment's VIDEO start + `amix normalize=0`), and
+  `_duration` measures the VIDEO stream (frames/fps), never the container. If you write your
+  own stitcher: never chain audio junctions, and never trust container durations.
 - **Check STREAM durations, not the container.** A muxed file's container length equals the
   longest stream — a video that freezes at 20s under a 33s audio track still probes as 33s.
   Verify `ffprobe -select_streams v:0` frame count ≈ audio duration × fps.

@@ -124,8 +124,14 @@ class AnimateBody(BaseModel):
 
 
 def _stage_source(eng: Engine, filename: str, subfolder: str, prefix: str) -> str:
-    """Copy an output image into ComfyUI input/ and return its input-relative path."""
-    src = Path(eng.cfg.comfyui.output_dir) / subfolder / filename
+    """Copy an output image into ComfyUI input/ and return its input-relative path.
+
+    `filename`/`subfolder` are CLIENT-SUPPLIED: resolve and verify the result stays
+    inside the ComfyUI output root (rejects `..`, absolute paths, drive letters)."""
+    out_root = Path(eng.cfg.comfyui.output_dir).resolve()
+    src = (out_root / subfolder / filename).resolve()
+    if not src.is_relative_to(out_root):
+        raise HTTPException(400, "invalid source path")
     if not src.exists():
         raise HTTPException(404, "source image not found")
     in_dir = Path(eng.cfg.comfyui.input_dir)
@@ -389,9 +395,10 @@ app.mount("/static", StaticFiles(directory=str(_STATIC)), name="static")
 
 def main() -> None:
     cfg = load_config(DEFAULT_CONFIG)
-    # Env overrides let start-lan.bat bind 0.0.0.0 without editing engine.yaml.
-    host = os.environ.get("COMFYUI_AI_WEB_HOST", cfg.server.web_host)
-    port = int(os.environ.get("COMFYUI_AI_WEB_PORT", cfg.server.web_port))
+    # Env overrides for a LAN bind without editing engine.yaml. WARNING: the studio
+    # has no authentication — bind beyond 127.0.0.1 only on a network you trust.
+    host = os.environ.get("BACKLOT_WEB_HOST", cfg.server.web_host)
+    port = int(os.environ.get("BACKLOT_WEB_PORT", cfg.server.web_port))
     import uvicorn
     uvicorn.run(app, host=host, port=port)
 

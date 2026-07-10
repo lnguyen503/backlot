@@ -161,7 +161,13 @@ class JobManager:
     async def cancel(self, run_id: Optional[str] = None,
                      prompt_id: Optional[str] = None) -> dict:
         run = self._lookup(run_id, prompt_id)
-        await self._client.interrupt()
+        if run.status.state == JobState.RUNNING:
+            # global /interrupt is only safe for the currently-executing job
+            await self._client.interrupt()
+        elif run.status.prompt_id:
+            # still queued: remove from the pending queue — interrupting here
+            # would kill whatever OTHER job is currently running
+            await self._client.dequeue(run.status.prompt_id)
         run.status.state = JobState.CANCELLED
         self._finish(run)
         return {"cancelled": True}
