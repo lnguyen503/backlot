@@ -1,5 +1,17 @@
 # Changelog
 
+## v0.1.2 — 2026-07-09
+
+### Added
+- **CI (GitHub Actions)**: unit suite on push/PR to main, matrix
+  ubuntu-latest + windows-latest × Python 3.11/3.12 (offline suite; ComfyUI/GPU/Blender
+  tests self-skip on runners). CI badge in README.
+
+### Fixed
+- `faceswap.py` CUDA bootstrap: `os.add_dll_directory` is Windows-only — now also catches
+  `AttributeError` so a Linux machine with the nvidia cu12 wheels installed doesn't crash
+  at import.
+
 ## v0.1.1 — 2026-07-09
 
 Fix round from two independent cold AI reviews of the public repo.

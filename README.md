@@ -1,5 +1,7 @@
 # Backlot
 
+[![CI](https://github.com/lnguyen503/backlot/actions/workflows/ci.yml/badge.svg)](https://github.com/lnguyen503/backlot/actions/workflows/ci.yml)
+
 **A local AI production studio that drives [ComfyUI](https://github.com/comfyanonymous/ComfyUI) and [Blender](https://www.blender.org/) — controllable by humans (web UI) and by AI agents (MCP), on your own GPU, at $0/generation.**
 
 Backlot wraps a running ComfyUI server with a typed engine, a no-build web studio, and an MCP

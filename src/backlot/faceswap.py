@@ -25,8 +25,8 @@ try:
         os.environ["PATH"] = os.pathsep.join(_bins) + os.pathsep + os.environ.get("PATH", "")
         for _d in _bins:
             try:
-                os.add_dll_directory(_d)
-            except OSError:
+                os.add_dll_directory(_d)   # Windows-only API
+            except (OSError, AttributeError):
                 pass
         _HAS_CUDA = True
 except ImportError:
