@@ -1,6 +1,6 @@
 # Backlot
 
-[![CI](https://github.com/lnguyen503/backlot/actions/workflows/ci.yml/badge.svg)](https://github.com/lnguyen503/backlot/actions/workflows/ci.yml)
+[![CI](https://github.com/lnguyen503/backlot/actions/workflows/ci.yml/badge.svg)](https://github.com/lnguyen503/backlot/actions/workflows/ci.yml) [![YouTube — see what it makes](https://img.shields.io/badge/YouTube-see_what_it_makes-red?logo=youtube)](https://www.youtube.com/@GatherRoundStory)
 
 **A local AI production studio that drives [ComfyUI](https://github.com/comfyanonymous/ComfyUI) and [Blender](https://www.blender.org/) — controllable by humans (web UI) and by AI agents (MCP), on your own GPU, at $0/generation.**
 
@@ -16,6 +16,9 @@ server, so the same capabilities are drivable three ways:
 
 > Backlot is an independent project, not affiliated with or endorsed by Comfy Org (ComfyUI) or the
 > Blender Foundation. Names are used descriptively.
+
+> 🎬 **See what it makes:** [**Gather Round**](https://www.youtube.com/@GatherRoundStory) — an
+> AI-made story channel produced entirely on this stack (every episode local, $0/generation).
 
 ## What it can do
 
